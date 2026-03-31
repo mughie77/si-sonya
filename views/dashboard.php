@@ -64,6 +64,7 @@ if ($role == 'admin') {
                 <a href="kelola_user.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">👥 Kelola User</a>
                 <a href="import_data.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📥 Import Data</a>
                 <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📊 Kelola Laporan</a>
+                <a href="hash_generator.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🛡️ Hash Generator</a>
             <?php endif; ?>
             <a href="change_password.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition italic">🔑 Ganti Password</a>
         </nav>
