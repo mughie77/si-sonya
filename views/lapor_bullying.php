@@ -1,40 +1,52 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
+require_once '../config/security.php';
+require_once '../config/database.php';
+
+if (!is_logged_in()) {
     header("Location: ../index.php");
     exit();
 }
-require_once '../config/database.php';
 
 $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $terlapor = $_POST['terlapor_nama'];
-    $tanggal = $_POST['tanggal_kejadian'];
-    $lokasi = $_POST['lokasi'];
-    $deskripsi = $_POST['deskripsi'];
-    $pelapor_id = $_SESSION['user_id'];
-
-    // Handle upload foto (simulasi folder uploads)
-    $foto_name = null;
-    if (isset($_FILES['bukti_foto']) && $_FILES['bukti_foto']['error'] === 0) {
-        $foto_name = time() . '_' . $_FILES['bukti_foto']['name'];
-        move_uploaded_file($_FILES['bukti_foto']['tmp_name'], '../uploads/' . $foto_name);
-    }
-
-    $stmt = $pdo->prepare("INSERT INTO bullying_reports (pelapor_id, terlapor_nama, tanggal_kejadian, lokasi, deskripsi, bukti_foto) VALUES (?, ?, ?, ?, ?, ?)");
-    if ($stmt->execute([$pelapor_id, $terlapor, $tanggal, $lokasi, $deskripsi, $foto_name])) {
-        $success = "Laporan berhasil dikirim! Kerahasiaan Anda terjamin.";
+    if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error = "Terjadi kesalahan keamanan (CSRF Token invalid).";
     } else {
-        $error = "Terjadi kesalahan saat mengirim laporan.";
+        $terlapor = trim($_POST['terlapor_nama']);
+        $tanggal = $_POST['tanggal_kejadian'];
+        $lokasi = trim($_POST['lokasi']);
+        $deskripsi = trim($_POST['deskripsi']);
+        $pelapor_id = $_SESSION['user_id'];
+
+        $foto_name = null;
+        if (isset($_FILES['bukti_foto']) && $_FILES['bukti_foto']['error'] === 0) {
+            $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+            $ext = strtolower(pathinfo($_FILES['bukti_foto']['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, $allowed)) {
+                $foto_name = bin2hex(random_bytes(10)) . '.' . $ext;
+                move_uploaded_file($_FILES['bukti_foto']['tmp_name'], '../uploads/' . $foto_name);
+            } else {
+                $error = "Format file tidak diizinkan!";
+            }
+        }
+
+        if (!$error) {
+            $stmt = $pdo->prepare("INSERT INTO bullying_reports (pelapor_id, terlapor_nama, tanggal_kejadian, lokasi, deskripsi, bukti_foto) VALUES (?, ?, ?, ?, ?, ?)");
+            if ($stmt->execute([$pelapor_id, $terlapor, $tanggal, $lokasi, $deskripsi, $foto_name])) {
+                $success = "Laporan berhasil dikirim! Kerahasiaan Anda terjamin.";
+            } else {
+                $error = "Terjadi kesalahan saat mengirim laporan.";
+            }
+        }
     }
 }
 
-// Ambil riwayat laporan saya
 $stmt = $pdo->prepare("SELECT * FROM bullying_reports WHERE pelapor_id = ? ORDER BY created_at DESC");
 $stmt->execute([$_SESSION['user_id']]);
 $riwayat = $stmt->fetchAll();
+$csrf_token = generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -49,7 +61,6 @@ $riwayat = $stmt->fetchAll();
     </style>
 </head>
 <body class="bg-gray-50 flex min-h-screen">
-    <!-- Sidebar (Same as Dashboard) -->
     <aside class="w-64 bg-indigo-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl">
         <div class="p-6 text-2xl font-bold border-b border-indigo-800 tracking-wider">SI-SONYA</div>
         <nav class="flex-grow p-4 space-y-2">
@@ -71,18 +82,18 @@ $riwayat = $stmt->fetchAll();
         </header>
 
         <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Form Laporan -->
             <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                 <h3 class="text-2xl font-bold text-indigo-900 mb-6">Formulir Laporan</h3>
 
                 <?php if ($success): ?>
-                    <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-lg text-green-700 text-sm"><?php echo $success; ?></div>
+                    <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-lg text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
                 <?php endif; ?>
                 <?php if ($error): ?>
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm"><?php echo $error; ?></div>
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
                 <?php endif; ?>
 
                 <form action="" method="POST" enctype="multipart/form-data" class="space-y-5">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Terlapor (Opsional/Boleh Inisial)</label>
                         <input type="text" name="terlapor_nama" placeholder="Siapa yang melakukan?"
@@ -117,7 +128,6 @@ $riwayat = $stmt->fetchAll();
                 </form>
             </div>
 
-            <!-- Riwayat Laporan -->
             <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                 <h3 class="text-2xl font-bold text-indigo-900 mb-6">Riwayat Laporan Anda</h3>
                 <div class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
@@ -127,20 +137,20 @@ $riwayat = $stmt->fetchAll();
                     <?php foreach ($riwayat as $r): ?>
                         <div class="p-5 border border-gray-100 rounded-2xl bg-gray-50/50 hover:bg-gray-100/80 transition group relative">
                              <div class="flex justify-between items-start mb-3">
-                                <span class="text-xs font-bold text-indigo-500 uppercase tracking-widest"><?php echo $r['tanggal_kejadian']; ?></span>
+                                <span class="text-xs font-bold text-indigo-500 uppercase tracking-widest"><?php echo e($r['tanggal_kejadian']); ?></span>
                                 <?php
                                     $status_color = 'bg-amber-100 text-amber-700';
                                     if ($r['status'] == 'proses') $status_color = 'bg-blue-100 text-blue-700';
                                     if ($r['status'] == 'selesai') $status_color = 'bg-green-100 text-green-700';
                                 ?>
                                 <span class="px-3 py-1 <?php echo $status_color; ?> rounded-full text-[10px] font-extrabold uppercase">
-                                    <?php echo $r['status']; ?>
+                                    <?php echo e($r['status']); ?>
                                 </span>
                              </div>
-                             <h4 class="font-bold text-gray-800"><?php echo htmlspecialchars($r['terlapor_nama'] ?: 'Anonim'); ?></h4>
-                             <p class="text-gray-600 text-sm line-clamp-2 mt-1"><?php echo htmlspecialchars($r['deskripsi']); ?></p>
+                             <h4 class="font-bold text-gray-800"><?php echo e($r['terlapor_nama'] ?: 'Anonim'); ?></h4>
+                             <p class="text-gray-600 text-sm line-clamp-2 mt-1"><?php echo e($r['deskripsi']); ?></p>
                              <div class="mt-3 flex items-center text-[11px] text-gray-400 font-medium">
-                                <span>📍 <?php echo htmlspecialchars($r['lokasi']); ?></span>
+                                <span>📍 <?php echo e($r['lokasi']); ?></span>
                              </div>
                         </div>
                     <?php endforeach; ?>

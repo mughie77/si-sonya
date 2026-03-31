@@ -1,32 +1,38 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
+require_once '../config/security.php';
+require_once '../config/database.php';
+
+if (!is_logged_in()) {
     header("Location: ../index.php");
     exit();
 }
-require_once '../config/database.php';
 
 $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $mood = $_POST['mood_score'];
-    $catatan = $_POST['catatan'];
-    $user_id = $_SESSION['user_id'];
-
-    // Cek apakah hari ini sudah isi
-    $check = $pdo->prepare("SELECT id FROM mood_tracking WHERE user_id = ? AND tanggal = CURRENT_DATE");
-    $check->execute([$user_id]);
-
-    if ($check->fetch()) {
-        $stmt = $pdo->prepare("UPDATE mood_tracking SET mood_score = ?, catatan = ? WHERE user_id = ? AND tanggal = CURRENT_DATE");
-        if ($stmt->execute([$mood, $catatan, $user_id])) {
-            $success = "Mood Anda hari ini berhasil diperbarui!";
-        }
+    if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error = "Terjadi kesalahan keamanan (CSRF Token invalid).";
     } else {
-        $stmt = $pdo->prepare("INSERT INTO mood_tracking (user_id, mood_score, catatan) VALUES (?, ?, ?)");
-        if ($stmt->execute([$user_id, $mood, $catatan])) {
-            $success = "Terima kasih sudah berbagi perasaanmu hari ini! ✨";
+        $mood = $_POST['mood_score'];
+        $catatan = $_POST['catatan'];
+        $user_id = $_SESSION['user_id'];
+
+        // Cek apakah hari ini sudah isi
+        $check = $pdo->prepare("SELECT id FROM mood_tracking WHERE user_id = ? AND tanggal = CURRENT_DATE");
+        $check->execute([$user_id]);
+
+        if ($check->fetch()) {
+            $stmt = $pdo->prepare("UPDATE mood_tracking SET mood_score = ?, catatan = ? WHERE user_id = ? AND tanggal = CURRENT_DATE");
+            if ($stmt->execute([$mood, $catatan, $user_id])) {
+                $success = "Mood Anda hari ini berhasil diperbarui!";
+            }
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO mood_tracking (user_id, mood_score, catatan) VALUES (?, ?, ?)");
+            if ($stmt->execute([$user_id, $mood, $catatan])) {
+                $success = "Terima kasih sudah berbagi perasaanmu hari ini! ✨";
+            }
         }
     }
 }
@@ -78,8 +84,12 @@ $riwayat = $stmt->fetchAll();
                 <?php if ($success): ?>
                     <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-10 rounded-lg text-green-700 text-sm text-left font-medium"><?php echo $success; ?></div>
                 <?php endif; ?>
+                <?php if ($error): ?>
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-10 rounded-lg text-red-700 text-sm text-left font-medium"><?php echo e($error); ?></div>
+                <?php endif; ?>
 
                 <form action="" method="POST" class="space-y-10">
+                    <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                     <div class="flex justify-around items-center gap-2">
                         <label class="cursor-pointer group flex flex-col items-center">
                             <input type="radio" name="mood_score" value="1" class="hidden peer" required>
@@ -149,7 +159,7 @@ $riwayat = $stmt->fetchAll();
                                         else echo "Sangat Sedih";
                                     ?>
                                 </h4>
-                                <p class="text-gray-500 text-xs italic mt-1 line-clamp-1">"<?php echo htmlspecialchars($r['catatan'] ?: 'Tidak ada catatan'); ?>"</p>
+                                <p class="text-gray-500 text-xs italic mt-1 line-clamp-1">"<?php echo e($r['catatan'] ?: 'Tidak ada catatan'); ?>"</p>
                             </div>
                             <div class="text-right text-[10px] font-bold text-indigo-400 uppercase">
                                 <?php echo date('d M', strtotime($r['tanggal'])); ?>

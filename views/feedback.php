@@ -1,23 +1,29 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
+require_once '../config/security.php';
+require_once '../config/database.php';
+
+if (!is_logged_in()) {
     header("Location: ../index.php");
     exit();
 }
-require_once '../config/database.php';
 
 $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $feedback = $_POST['isi_feedback'];
-    $user_id = $_SESSION['user_id'];
-
-    $stmt = $pdo->prepare("INSERT INTO feedback (user_id, isi_feedback) VALUES (?, ?)");
-    if ($stmt->execute([$user_id, $feedback])) {
-        $success = "Terima kasih atas saran Anda! Ini sangat berarti bagi perkembangan sekolah.";
+    if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error = "Terjadi kesalahan keamanan (CSRF Token invalid).";
     } else {
-        $error = "Terjadi kesalahan saat mengirim saran.";
+        $feedback = $_POST['isi_feedback'];
+        $user_id = $_SESSION['user_id'];
+
+        $stmt = $pdo->prepare("INSERT INTO feedback (user_id, isi_feedback) VALUES (?, ?)");
+        if ($stmt->execute([$user_id, $feedback])) {
+            $success = "Terima kasih atas saran Anda! Ini sangat berarti bagi perkembangan sekolah.";
+        } else {
+            $error = "Terjadi kesalahan saat mengirim saran.";
+        }
     }
 }
 ?>
@@ -59,8 +65,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if ($success): ?>
                 <div class="bg-purple-50 border-l-4 border-purple-500 p-4 mb-10 rounded-lg text-purple-700 text-sm text-left font-medium"><?php echo $success; ?></div>
             <?php endif; ?>
+            <?php if ($error): ?>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-10 rounded-lg text-red-700 text-sm text-left font-medium"><?php echo e($error); ?></div>
+            <?php endif; ?>
 
             <form action="" method="POST" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                 <textarea name="isi_feedback" required rows="6" placeholder="Ketik saran atau masukan Anda di sini..."
                     class="w-full px-6 py-4 rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200 text-lg"></textarea>
 

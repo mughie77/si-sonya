@@ -1,25 +1,31 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+require_once '../config/security.php';
+require_once '../config/database.php';
+
+if (!is_logged_in() || $_SESSION['role'] != 'admin') {
     header("Location: ../index.php");
     exit();
 }
-require_once '../config/database.php';
 
 $success = '';
 $error = '';
 
 // Update Status Laporan
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['update_status'])) {
-        $type = $_POST['type']; // 'bullying' atau 'facility'
-        $id = $_POST['id'];
-        $status = $_POST['status'];
+    if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error = "Terjadi kesalahan keamanan (CSRF Token invalid).";
+    } else {
+        if (isset($_POST['update_status'])) {
+            $type = $_POST['type']; // 'bullying' atau 'facility'
+            $id = $_POST['id'];
+            $status = $_POST['status'];
 
-        $table = ($type == 'bullying') ? 'bullying_reports' : 'facility_reports';
-        $stmt = $pdo->prepare("UPDATE $table SET status = ? WHERE id = ?");
-        if ($stmt->execute([$status, $id])) {
-            $success = "Status laporan berhasil diperbarui!";
+            $table = ($type == 'bullying') ? 'bullying_reports' : 'facility_reports';
+            $stmt = $pdo->prepare("UPDATE $table SET status = ? WHERE id = ?");
+            if ($stmt->execute([$status, $id])) {
+                $success = "Status laporan berhasil diperbarui!";
+            }
         }
     }
 }
@@ -33,6 +39,7 @@ $facilities = $pdo->query("SELECT fr.*, u.nama_lengkap as pelapor FROM facility_
 // Ambil Feedback
 $feedbacks = $pdo->query("SELECT fb.*, u.nama_lengkap as pengirim FROM feedback fb JOIN users u ON fb.user_id = u.id ORDER BY fb.created_at DESC")->fetchAll();
 
+$csrf_token = generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -53,6 +60,7 @@ $feedbacks = $pdo->query("SELECT fb.*, u.nama_lengkap as pengirim FROM feedback 
             <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏠 Dashboard</a>
             <a href="kelola_user.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">👥 Kelola User</a>
             <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">📊 Kelola Laporan</a>
+            <a href="import_data.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📥 Import Data</a>
         </nav>
         <div class="p-4 border-t border-indigo-800">
             <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition text-center font-bold">Keluar</a>
@@ -71,7 +79,10 @@ $feedbacks = $pdo->query("SELECT fb.*, u.nama_lengkap as pengirim FROM feedback 
 
         <div class="p-8 space-y-12">
             <?php if ($success): ?>
-                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg text-green-700 text-sm font-medium"><?php echo $success; ?></div>
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
+            <?php endif; ?>
+            <?php if ($error): ?>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
             <?php endif; ?>
 
             <!-- Bullying Section -->
@@ -88,23 +99,24 @@ $feedbacks = $pdo->query("SELECT fb.*, u.nama_lengkap as pengirim FROM feedback 
                         <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:border-red-300 transition-all group">
                              <div class="flex justify-between items-start mb-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-indigo-900"><?php echo substr($b['pelapor'], 0, 1); ?></div>
+                                    <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-indigo-900"><?php echo e(substr($b['pelapor'], 0, 1)); ?></div>
                                     <div>
-                                        <h4 class="font-bold text-gray-800 text-lg"><?php echo htmlspecialchars($b['terlapor_nama']); ?></h4>
-                                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Pelapor: <?php echo htmlspecialchars($b['pelapor']); ?></p>
+                                        <h4 class="font-bold text-gray-800 text-lg"><?php echo e($b['terlapor_nama']); ?></h4>
+                                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Pelapor: <?php echo e($b['pelapor']); ?></p>
                                     </div>
                                 </div>
-                                <span class="text-xs text-gray-400 font-medium"><?php echo date('d M Y', strtotime($b['created_at'])); ?></span>
+                                <span class="text-xs text-gray-400 font-medium"><?php echo e(date('d M Y', strtotime($b['created_at']))); ?></span>
                              </div>
                              <div class="bg-red-50/30 p-4 rounded-2xl mb-5">
-                                <p class="text-gray-600 text-sm italic leading-relaxed line-clamp-3">"<?php echo htmlspecialchars($b['deskripsi']); ?>"</p>
+                                <p class="text-gray-600 text-sm italic leading-relaxed line-clamp-3">"<?php echo e($b['deskripsi']); ?>"</p>
                              </div>
                              <div class="flex justify-between items-center mt-auto pt-4 border-t border-gray-50">
-                                <span class="text-[10px] font-bold text-gray-400 uppercase">📍 <?php echo htmlspecialchars($b['lokasi']); ?></span>
+                                <span class="text-[10px] font-bold text-gray-400 uppercase">📍 <?php echo e($b['lokasi']); ?></span>
                                 <form action="" method="POST" class="flex gap-2">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                     <input type="hidden" name="update_status" value="1">
                                     <input type="hidden" name="type" value="bullying">
-                                    <input type="hidden" name="id" value="<?php echo $b['id']; ?>">
+                                    <input type="hidden" name="id" value="<?php echo e($b['id']); ?>">
                                     <select name="status" onchange="this.form.submit()"
                                         class="text-[10px] font-extrabold uppercase py-1.5 px-3 rounded-full outline-none focus:ring-2 focus:ring-indigo-200 cursor-pointer <?php echo ($b['status'] == 'pending') ? 'bg-amber-100 text-amber-600' : (($b['status'] == 'proses') ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'); ?>">
                                         <option value="pending" <?php echo ($b['status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
@@ -137,14 +149,15 @@ $feedbacks = $pdo->query("SELECT fb.*, u.nama_lengkap as pengirim FROM feedback 
                         <tbody class="divide-y divide-gray-100">
                             <?php foreach ($facilities as $f): ?>
                                 <tr class="hover:bg-gray-50/50 transition">
-                                    <td class="px-6 py-4 font-bold text-gray-800"><?php echo htmlspecialchars($f['nama_fasilitas']); ?></td>
-                                    <td class="px-6 py-4 text-gray-600 text-sm"><?php echo htmlspecialchars($f['pelapor']); ?></td>
-                                    <td class="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate"><?php echo htmlspecialchars($f['deskripsi_kerusakan']); ?></td>
+                                    <td class="px-6 py-4 font-bold text-gray-800"><?php echo e($f['nama_fasilitas']); ?></td>
+                                    <td class="px-6 py-4 text-gray-600 text-sm"><?php echo e($f['pelapor']); ?></td>
+                                    <td class="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate"><?php echo e($f['deskripsi_kerusakan']); ?></td>
                                     <td class="px-6 py-4">
                                         <form action="" method="POST">
+                                            <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                             <input type="hidden" name="update_status" value="1">
                                             <input type="hidden" name="type" value="facility">
-                                            <input type="hidden" name="id" value="<?php echo $f['id']; ?>">
+                                            <input type="hidden" name="id" value="<?php echo e($f['id']); ?>">
                                             <select name="status" onchange="this.form.submit()"
                                                 class="text-[9px] font-extrabold uppercase py-1 px-3 rounded-full outline-none focus:ring-2 focus:ring-indigo-100 <?php echo ($f['status'] == 'pending') ? 'bg-amber-100 text-amber-600' : (($f['status'] == 'proses') ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'); ?>">
                                                 <option value="pending" <?php echo ($f['status'] == 'pending') ? 'selected' : ''; ?>>Pending</option>
@@ -169,10 +182,10 @@ $feedbacks = $pdo->query("SELECT fb.*, u.nama_lengkap as pengirim FROM feedback 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <?php foreach ($feedbacks as $fb): ?>
                         <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 border-l-4 border-l-purple-500">
-                             <p class="text-gray-700 text-sm leading-relaxed mb-4 italic">"<?php echo htmlspecialchars($fb['isi_feedback']); ?>"</p>
+                             <p class="text-gray-700 text-sm leading-relaxed mb-4 italic">"<?php echo e($fb['isi_feedback']); ?>"</p>
                              <div class="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
-                                <span>👤 <?php echo htmlspecialchars($fb['pengirim']); ?></span>
-                                <span><?php echo date('d/m/y', strtotime($fb['created_at'])); ?></span>
+                                <span>👤 <?php echo e($fb['pengirim']); ?></span>
+                                <span><?php echo e(date('d/m/y', strtotime($fb['created_at']))); ?></span>
                              </div>
                         </div>
                     <?php endforeach; ?>

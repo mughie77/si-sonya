@@ -1,44 +1,51 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+require_once '../config/security.php';
+require_once '../config/database.php';
+
+if (!is_logged_in() || $_SESSION['role'] != 'admin') {
     header("Location: ../index.php");
     exit();
 }
-require_once '../config/database.php';
 
 $success = '';
 $error = '';
 
 // Handle CRUD Operations (Sederhana)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action'])) {
-        if ($_POST['action'] == 'add') {
-            $username = $_POST['username'];
-            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            $nama = $_POST['nama_lengkap'];
-            $role = $_POST['role'];
+    if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error = "Terjadi kesalahan keamanan (CSRF Token invalid).";
+    } else {
+        if (isset($_POST['action'])) {
+            if ($_POST['action'] == 'add') {
+                $username = trim($_POST['username']);
+                $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                $nama = trim($_POST['nama_lengkap']);
+                $role = $_POST['role'];
 
-            $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role) VALUES (?, ?, ?, ?)");
-            try {
-                $stmt->execute([$username, $password, $nama, $role]);
-                $success = "User berhasil ditambahkan!";
-            } catch (PDOException $e) {
-                $error = "Gagal menambah user: " . $e->getMessage();
-            }
-        } elseif ($_POST['action'] == 'delete') {
-            $id = $_POST['id'];
-            if ($id != $_SESSION['user_id']) {
-                $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
-                $stmt->execute([$id]);
-                $success = "User berhasil dihapus!";
-            } else {
-                $error = "Anda tidak bisa menghapus diri sendiri!";
+                $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role) VALUES (?, ?, ?, ?)");
+                try {
+                    $stmt->execute([$username, $password, $nama, $role]);
+                    $success = "User berhasil ditambahkan!";
+                } catch (PDOException $e) {
+                    $error = "Gagal menambah user: " . $e->getMessage();
+                }
+            } elseif ($_POST['action'] == 'delete') {
+                $id = $_POST['id'];
+                if ($id != $_SESSION['user_id']) {
+                    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+                    $stmt->execute([$id]);
+                    $success = "User berhasil dihapus!";
+                } else {
+                    $error = "Anda tidak bisa menghapus diri sendiri!";
+                }
             }
         }
     }
 }
 
 $users = $pdo->query("SELECT * FROM users ORDER BY role, nama_lengkap")->fetchAll();
+$csrf_token = generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -59,6 +66,7 @@ $users = $pdo->query("SELECT * FROM users ORDER BY role, nama_lengkap")->fetchAl
             <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏠 Dashboard</a>
             <a href="kelola_user.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">👥 Kelola User</a>
             <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📊 Kelola Laporan</a>
+            <a href="import_data.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📥 Import Data</a>
         </nav>
         <div class="p-4 border-t border-indigo-800">
             <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition text-center font-bold">Keluar</a>
@@ -73,10 +81,10 @@ $users = $pdo->query("SELECT * FROM users ORDER BY role, nama_lengkap")->fetchAl
 
         <div class="p-8">
             <?php if ($success): ?>
-                <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-lg text-green-700 text-sm font-medium"><?php echo $success; ?></div>
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-lg text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
             <?php endif; ?>
             <?php if ($error): ?>
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm font-medium"><?php echo $error; ?></div>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
             <?php endif; ?>
 
             <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
@@ -93,8 +101,8 @@ $users = $pdo->query("SELECT * FROM users ORDER BY role, nama_lengkap")->fetchAl
                     <tbody class="divide-y divide-gray-100">
                         <?php foreach ($users as $u): ?>
                             <tr class="hover:bg-gray-50 transition">
-                                <td class="px-6 py-4 font-semibold text-gray-800"><?php echo htmlspecialchars($u['nama_lengkap']); ?></td>
-                                <td class="px-6 py-4 text-gray-600"><?php echo htmlspecialchars($u['username']); ?></td>
+                                <td class="px-6 py-4 font-semibold text-gray-800"><?php echo e($u['nama_lengkap']); ?></td>
+                                <td class="px-6 py-4 text-gray-600"><?php echo e($u['username']); ?></td>
                                 <td class="px-6 py-4">
                                     <?php
                                         $role_color = 'bg-gray-100 text-gray-700';
@@ -103,14 +111,15 @@ $users = $pdo->query("SELECT * FROM users ORDER BY role, nama_lengkap")->fetchAl
                                         if ($u['role'] == 'siswa') $role_color = 'bg-green-100 text-green-700';
                                     ?>
                                     <span class="px-3 py-1 <?php echo $role_color; ?> rounded-full text-[10px] font-extrabold uppercase tracking-widest">
-                                        <?php echo $u['role']; ?>
+                                        <?php echo e($u['role']); ?>
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-gray-400 text-xs italic"><?php echo $u['created_at']; ?></td>
+                                <td class="px-6 py-4 text-gray-400 text-xs italic"><?php echo e($u['created_at']); ?></td>
                                 <td class="px-6 py-4 text-center">
                                     <form action="" method="POST" onsubmit="return confirm('Hapus user ini?')" class="inline">
+                                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                                         <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
+                                        <input type="hidden" name="id" value="<?php echo e($u['id']); ?>">
                                         <button type="submit" class="text-red-500 hover:text-red-700 font-bold text-sm">Hapus</button>
                                     </form>
                                 </td>
@@ -126,6 +135,7 @@ $users = $pdo->query("SELECT * FROM users ORDER BY role, nama_lengkap")->fetchAl
             <div class="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 overflow-hidden">
                 <h3 class="text-2xl font-bold text-indigo-900 mb-6">Tambah Pengguna Baru</h3>
                 <form action="" method="POST" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                     <input type="hidden" name="action" value="add">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>

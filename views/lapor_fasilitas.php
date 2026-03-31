@@ -1,31 +1,45 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
+require_once '../config/security.php';
+require_once '../config/database.php';
+
+if (!is_logged_in()) {
     header("Location: ../index.php");
     exit();
 }
-require_once '../config/database.php';
 
 $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nama_fasilitas = $_POST['nama_fasilitas'];
-    $deskripsi = $_POST['deskripsi'];
-    $pelapor_id = $_SESSION['user_id'];
-
-    // Handle upload foto
-    $foto_name = null;
-    if (isset($_FILES['foto_fasilitas']) && $_FILES['foto_fasilitas']['error'] === 0) {
-        $foto_name = 'fas_' . time() . '_' . $_FILES['foto_fasilitas']['name'];
-        move_uploaded_file($_FILES['foto_fasilitas']['tmp_name'], '../uploads/' . $foto_name);
-    }
-
-    $stmt = $pdo->prepare("INSERT INTO facility_reports (pelapor_id, nama_fasilitas, deskripsi_kerusakan, foto_fasilitas) VALUES (?, ?, ?, ?)");
-    if ($stmt->execute([$pelapor_id, $nama_fasilitas, $deskripsi, $foto_name])) {
-        $success = "Laporan fasilitas berhasil dikirim! Tim sarpras akan segera mengeceknya.";
+    if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error = "Terjadi kesalahan keamanan (CSRF Token invalid).";
     } else {
-        $error = "Terjadi kesalahan saat mengirim laporan.";
+        $nama_fasilitas = trim($_POST['nama_fasilitas']);
+        $deskripsi = trim($_POST['deskripsi']);
+        $pelapor_id = $_SESSION['user_id'];
+
+        // Handle upload foto
+        $foto_name = null;
+        if (isset($_FILES['foto_fasilitas']) && $_FILES['foto_fasilitas']['error'] === 0) {
+            $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+            $ext = strtolower(pathinfo($_FILES['foto_fasilitas']['name'], PATHINFO_EXTENSION));
+            if (in_array($ext, $allowed)) {
+                $foto_name = 'fas_' . bin2hex(random_bytes(10)) . '.' . $ext;
+                move_uploaded_file($_FILES['foto_fasilitas']['tmp_name'], '../uploads/' . $foto_name);
+            } else {
+                $error = "Format file tidak diizinkan!";
+            }
+        }
+
+        if (!$error) {
+            $stmt = $pdo->prepare("INSERT INTO facility_reports (pelapor_id, nama_fasilitas, deskripsi_kerusakan, foto_fasilitas) VALUES (?, ?, ?, ?)");
+            if ($stmt->execute([$pelapor_id, $nama_fasilitas, $deskripsi, $foto_name])) {
+                $success = "Laporan fasilitas berhasil dikirim! Tim sarpras akan segera mengeceknya.";
+            } else {
+                $error = "Terjadi kesalahan saat mengirim laporan.";
+            }
+        }
     }
 }
 
@@ -33,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stmt = $pdo->prepare("SELECT * FROM facility_reports WHERE pelapor_id = ? ORDER BY created_at DESC");
 $stmt->execute([$_SESSION['user_id']]);
 $riwayat = $stmt->fetchAll();
+$csrf_token = generate_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -72,10 +87,14 @@ $riwayat = $stmt->fetchAll();
                 <h3 class="text-2xl font-bold text-indigo-900 mb-6">Detail Kerusakan</h3>
 
                 <?php if ($success): ?>
-                    <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-lg text-amber-700 text-sm"><?php echo $success; ?></div>
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-lg text-amber-700 text-sm font-medium"><?php echo e($success); ?></div>
+                <?php endif; ?>
+                <?php if ($error): ?>
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
                 <?php endif; ?>
 
                 <form action="" method="POST" enctype="multipart/form-data" class="space-y-5">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Fasilitas</label>
                         <input type="text" name="nama_fasilitas" required placeholder="Contoh: Meja Kelas 10A, Kran Toilet"
@@ -109,21 +128,21 @@ $riwayat = $stmt->fetchAll();
                         <div class="p-5 border border-gray-100 rounded-2xl bg-gray-50/50 flex items-center gap-4 group">
                              <div class="w-16 h-16 bg-indigo-100 rounded-xl flex-shrink-0 flex items-center justify-center text-indigo-600 font-bold overflow-hidden">
                                 <?php if ($r['foto_fasilitas']): ?>
-                                    <img src="../uploads/<?php echo $r['foto_fasilitas']; ?>" class="w-full h-full object-cover">
+                                    <img src="../uploads/<?php echo e($r['foto_fasilitas']); ?>" class="w-full h-full object-cover">
                                 <?php else: ?>
                                     🛠️
                                 <?php endif; ?>
                              </div>
                              <div class="flex-grow">
-                                <h4 class="font-bold text-gray-800"><?php echo htmlspecialchars($r['nama_fasilitas']); ?></h4>
-                                <p class="text-gray-500 text-xs mt-1 italic"><?php echo date('d M Y', strtotime($r['created_at'])); ?></p>
+                                <h4 class="font-bold text-gray-800"><?php echo e($r['nama_fasilitas']); ?></h4>
+                                <p class="text-gray-500 text-xs mt-1 italic"><?php echo e(date('d M Y', strtotime($r['created_at']))); ?></p>
                                 <?php
                                     $status_color = 'text-amber-500';
                                     if ($r['status'] == 'proses') $status_color = 'text-blue-500';
                                     if ($r['status'] == 'selesai') $status_color = 'text-green-500';
                                 ?>
                                 <p class="text-[10px] font-extrabold uppercase mt-1 <?php echo $status_color; ?>">
-                                    Status: <?php echo $r['status']; ?>
+                                    Status: <?php echo e($r['status']); ?>
                                 </p>
                              </div>
                         </div>

@@ -1,8 +1,8 @@
 <?php
-session_start();
+require_once 'config/security.php';
 require_once 'config/database.php';
 
-if (isset($_SESSION['user_id'])) {
+if (is_logged_in()) {
     header("Location: views/dashboard.php");
     exit();
 }
@@ -10,26 +10,32 @@ if (isset($_SESSION['user_id'])) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
-
-    if (isset($pdo)) {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch();
-
-        if ($user && password_verify($password, $user['password'])) {
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['nama_lengkap'] = $user['nama_lengkap'];
-            $_SESSION['role'] = $user['role'];
-            header("Location: views/dashboard.php");
-            exit();
-        } else {
-            $error = "Username atau password salah!";
-        }
+    if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
+        $error = "Terjadi kesalahan keamanan (CSRF Token invalid).";
     } else {
-        $error = "Gagal terhubung ke database. Pastikan database sudah terpasang.";
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        if (isset($pdo)) {
+            $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch();
+
+            if ($user && password_verify($password, $user['password'])) {
+                // Secure Session
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['nama_lengkap'] = $user['nama_lengkap'];
+                $_SESSION['role'] = $user['role'];
+                header("Location: views/dashboard.php");
+                exit();
+            } else {
+                $error = "Username atau password salah!";
+            }
+        } else {
+            $error = "Gagal terhubung ke database. Pastikan database sudah terpasang.";
+        }
     }
 }
 ?>
@@ -60,11 +66,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <?php if ($error): ?>
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm">
-                    <?php echo $error; ?>
+                    <?php echo e($error); ?>
                 </div>
             <?php endif; ?>
 
             <form action="" method="POST" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
                     <input type="text" name="username" required
