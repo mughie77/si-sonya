@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once '../config/security.php';
 require_once '../config/database.php';
 
@@ -24,15 +25,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             fgetcsv($handle, 1000, ",");
 
             while (($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
-                // Format: nama_lengkap, username, password
-                if (count($data) >= 3) {
+                // Format: nama_lengkap, nis_nip, kelas, tempat_lahir, tanggal_lahir, password (opsional)
+                if (count($data) >= 2) {
                     $nama = trim($data[0]);
-                    $username = trim($data[1]);
-                    $password = password_hash(trim($data[2]), PASSWORD_DEFAULT);
+                    $nis_nip = trim($data[1]);
+                    $username = $nis_nip;
+                    $kelas = $data[2] ?? '';
+                    $tempat_lahir = $data[3] ?? '';
+                    $tanggal_lahir = (!empty($data[4])) ? date('Y-m-d', strtotime($data[4])) : null;
+
+                    // If password column is empty, use nis_nip as default password
+                    $password_plain = (!empty($data[5])) ? trim($data[5]) : $nis_nip;
+                    $password_hash = password_hash($password_plain, PASSWORD_DEFAULT);
 
                     try {
-                        $stmt = $pdo->prepare("INSERT INTO users (nama_lengkap, username, password, role) VALUES (?, ?, ?, ?)");
-                        $stmt->execute([$nama, $username, $password, $role]);
+                        $stmt = $pdo->prepare("INSERT INTO users (nama_lengkap, username, nis_nip, password, role, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$nama, $username, $nis_nip, $password_hash, $role, $kelas, $tempat_lahir, $tanggal_lahir]);
                         $count_success++;
                     } catch (PDOException $e) {
                         $count_failed++;
@@ -68,9 +76,11 @@ $csrf_token = generate_csrf_token();
         <div class="p-6 text-2xl font-bold border-b border-indigo-800 tracking-wider">SI-SONYA</div>
         <nav class="flex-grow p-4 space-y-2">
             <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏠 Dashboard</a>
+            <a href="live_monitoring.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📡 Live View <span class="bg-red-500 text-[10px] px-2 py-0.5 rounded-full animate-pulse">NEW</span></a>
             <a href="kelola_user.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">👥 Kelola User</a>
             <a href="import_data.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">📥 Import Data</a>
             <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📊 Kelola Laporan</a>
+            <a href="hash_generator.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🔑 Hash Generator</a>
         </nav>
         <div class="p-4 border-t border-indigo-800">
             <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition text-center font-bold">Keluar</a>
@@ -89,11 +99,12 @@ $csrf_token = generate_csrf_token();
             <?php endif; ?>
 
             <div class="mb-8 p-4 bg-indigo-50 rounded-2xl text-indigo-700 text-xs leading-relaxed">
-                <p class="font-bold mb-2 uppercase">💡 Petunjuk:</p>
+                <p class="font-bold mb-2 uppercase">💡 Petunjuk CSV:</p>
                 <ul class="list-disc list-inside space-y-1">
                     <li>Gunakan file format <strong>.csv</strong></li>
-                    <li>Urutan kolom: <strong>nama_lengkap, username, password</strong></li>
-                    <li>Baris pertama harus berisi header (akan dilewati oleh sistem)</li>
+                    <li>Urutan kolom: <strong>nama_lengkap, nis_nip, kelas, tempat_lahir, tanggal_lahir (YYYY-MM-DD), password (opsional)</strong></li>
+                    <li>Baris pertama harus berisi header (akan dilewati)</li>
+                    <li>Jika password dikosongkan, maka <strong>nis_nip</strong> akan digunakan sebagai password default.</li>
                 </ul>
             </div>
 

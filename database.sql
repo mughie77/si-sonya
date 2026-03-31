@@ -4,10 +4,14 @@ USE si_sonya;
 -- Tabel Users (Admin, Guru, Siswa)
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL UNIQUE, -- Admin uses username, Guru/Siswa use NIP/NIS
     password VARCHAR(255) NOT NULL,
     nama_lengkap VARCHAR(100) NOT NULL,
     role ENUM('admin', 'guru', 'siswa') NOT NULL,
+    nis_nip VARCHAR(50) NULL UNIQUE, -- For Guru (NIP/NIK) and Siswa (NIS)
+    kelas VARCHAR(50) NULL,
+    tempat_lahir VARCHAR(100) NULL,
+    tanggal_lahir DATE NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -21,6 +25,7 @@ CREATE TABLE bullying_reports (
     deskripsi TEXT NOT NULL,
     bukti_foto VARCHAR(255),
     status ENUM('pending', 'proses', 'selesai') DEFAULT 'pending',
+    is_notified TINYINT(1) DEFAULT 0, -- To track if alerted in live view
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (pelapor_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -57,10 +62,19 @@ CREATE TABLE facility_reports (
     FOREIGN KEY (pelapor_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Insert Default Admin
-INSERT INTO users (username, password, nama_lengkap, role) VALUES
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator SI-SONYA', 'admin'),
-('guru1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Ibu Guru Sonya', 'guru'),
-('siswa1', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Siswa Ceria', 'siswa');
+-- Tabel Panic Button Events
+CREATE TABLE panic_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    latitude DECIMAL(10, 8) NOT NULL,
+    longitude DECIMAL(11, 8) NOT NULL,
+    status ENUM('active', 'resolved') DEFAULT 'active',
+    is_notified TINYINT(1) DEFAULT 0, -- To track if alerted in live view
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
--- Default Password for all: password
+-- Insert Default Admin
+-- Password 'admin123'
+INSERT INTO users (username, password, nama_lengkap, role) VALUES
+('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Administrator SI-SONYA', 'admin');

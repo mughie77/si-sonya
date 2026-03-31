@@ -3,7 +3,7 @@ session_start();
 require_once '../config/security.php';
 require_once '../config/database.php';
 
-if (!is_logged_in() || $_SESSION['role'] != 'admin') {
+if (!is_logged_in() || ($_SESSION['role'] != 'admin' && $_SESSION['role'] != 'guru')) {
     header("Location: ../index.php");
     exit();
 }
@@ -40,6 +40,7 @@ $facilities = $pdo->query("SELECT fr.*, u.nama_lengkap as pelapor FROM facility_
 $feedbacks = $pdo->query("SELECT fb.*, u.nama_lengkap as pengirim FROM feedback fb JOIN users u ON fb.user_id = u.id ORDER BY fb.created_at DESC")->fetchAll();
 
 $csrf_token = generate_csrf_token();
+$role = $_SESSION['role'];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -58,9 +59,14 @@ $csrf_token = generate_csrf_token();
         <div class="p-6 text-2xl font-bold border-b border-indigo-800 tracking-wider">SI-SONYA</div>
         <nav class="flex-grow p-4 space-y-2">
             <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏠 Dashboard</a>
-            <a href="kelola_user.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">👥 Kelola User</a>
-            <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">📊 Kelola Laporan</a>
-            <a href="import_data.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📥 Import Data</a>
+            <a href="live_monitoring.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📡 Live View <span class="bg-red-500 text-[10px] px-2 py-0.5 rounded-full animate-pulse tracking-tighter">LIVE</span></a>
+            <?php if ($role == 'admin'): ?>
+                <a href="kelola_user.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">👥 Kelola User</a>
+                <a href="import_data.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📥 Import Data</a>
+                <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">📊 Kelola Laporan</a>
+                <a href="hash_generator.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🛡️ Hash Generator</a>
+            <?php endif; ?>
+            <a href="change_password.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition italic">🔑 Ganti Password</a>
         </nav>
         <div class="p-4 border-t border-indigo-800">
             <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition text-center font-bold">Keluar</a>

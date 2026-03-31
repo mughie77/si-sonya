@@ -13,11 +13,12 @@ $nama = $_SESSION['nama_lengkap'];
 
 // Ambil statistik lengkap untuk dashboard
 $stats = [];
-if ($role == 'admin') {
+if ($role == 'admin' || $role == 'guru') {
     $stats['total_users'] = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
     $stats['total_bullying'] = $pdo->query("SELECT COUNT(*) FROM bullying_reports")->fetchColumn();
     $stats['total_facilities'] = $pdo->query("SELECT COUNT(*) FROM facility_reports")->fetchColumn();
     $stats['pending_reports'] = $pdo->query("SELECT COUNT(*) FROM bullying_reports WHERE status = 'pending'")->fetchColumn();
+    $stats['active_panics'] = $pdo->query("SELECT COUNT(*) FROM panic_events WHERE status = 'active'")->fetchColumn();
 
     // Data untuk Chart (Mood rata-rata 7 hari terakhir)
     $chart_data = $pdo->query("SELECT tanggal, AVG(mood_score) as avg_mood FROM mood_tracking GROUP BY tanggal ORDER BY tanggal DESC LIMIT 7")->fetchAll();
@@ -48,6 +49,12 @@ if ($role == 'admin') {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; }
+        .panic-active { animation: pulse-red 1s infinite; }
+        @keyframes pulse-red {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 flex min-h-screen">
@@ -55,12 +62,19 @@ if ($role == 'admin') {
         <div class="p-6 text-2xl font-bold border-b border-indigo-800 tracking-wider">SI-SONYA</div>
         <nav class="flex-grow p-4 space-y-2">
             <a href="dashboard.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">🏠 Dashboard</a>
+
+            <?php if ($role == 'admin' || $role == 'guru'): ?>
+                <a href="live_monitoring.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📡 Live View <span class="bg-red-500 text-[10px] px-2 py-0.5 rounded-full animate-pulse">LIVE</span></a>
+            <?php endif; ?>
+
             <?php if ($role != 'admin'): ?>
                 <a href="lapor_bullying.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🛡️ Lapor Bullying</a>
                 <a href="mood_tracker.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">😊 Mood Tracker</a>
                 <a href="lapor_fasilitas.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏗️ Lapor Fasilitas</a>
                 <a href="feedback.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">💬 Kirim Saran</a>
-            <?php else: ?>
+            <?php endif; ?>
+
+            <?php if ($role == 'admin'): ?>
                 <a href="kelola_user.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">👥 Kelola User</a>
                 <a href="import_data.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📥 Import Data</a>
                 <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📊 Kelola Laporan</a>
@@ -82,8 +96,80 @@ if ($role == 'admin') {
         </header>
 
         <div class="p-8 space-y-8">
+            <!-- Panic Button Section (SISWA ONLY) -->
+            <?php if ($role == 'siswa'): ?>
+            <div class="bg-white p-8 rounded-3xl shadow-sm border-4 border-red-100 flex flex-col items-center justify-center space-y-4 text-center">
+                <div class="bg-red-100 p-4 rounded-full">
+                    <span class="text-5xl">🆘</span>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-extrabold text-red-600">PANIC BUTTON</h3>
+                    <p class="text-gray-500 text-sm">Tekan tombol di bawah dalam keadaan darurat untuk membagikan lokasi GPS Anda ke pihak sekolah secara instan.</p>
+                </div>
+                <button id="panicButton" class="bg-red-600 hover:bg-red-700 text-white w-48 h-48 rounded-full shadow-2xl transition transform active:scale-95 flex flex-col items-center justify-center border-8 border-red-200">
+                    <span class="text-3xl font-black tracking-tighter">EMERGENCY</span>
+                    <span class="text-[10px] font-bold opacity-70 mt-1 uppercase">Tekan Di Sini</span>
+                </button>
+                <div id="panicStatus" class="hidden text-sm font-bold p-3 rounded-xl"></div>
+            </div>
+
+            <script>
+                document.getElementById('panicButton').addEventListener('click', function() {
+                    if (confirm('Konfirmasi kirim sinyal darurat (Emergency Signal)? Lokasi Anda akan dibagikan ke sekolah.')) {
+                        const statusDiv = document.getElementById('panicStatus');
+                        statusDiv.className = 'block text-sm font-bold p-3 rounded-xl bg-indigo-50 text-indigo-700 italic';
+                        statusDiv.innerText = '🛰️ Sedang mengambil lokasi GPS...';
+                        this.disabled = true;
+                        this.classList.add('opacity-50');
+
+                        if ("geolocation" in navigator) {
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    const lat = position.coords.latitude;
+                                    const lng = position.coords.longitude;
+
+                                    fetch('../controllers/panic_handler.php', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ lat: lat, lng: lng })
+                                    })
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            statusDiv.className = 'block text-sm font-bold p-3 rounded-xl bg-green-100 text-green-700';
+                                            statusDiv.innerText = '✅ ' + data.message;
+                                            this.classList.add('panic-active');
+                                            this.classList.remove('opacity-50');
+                                            this.innerHTML = '<span class="text-3xl font-black">ACTIVE</span>';
+                                        } else {
+                                            alert('Gagal mengirim sinyal: ' + data.message);
+                                            resetButton();
+                                        }
+                                    });
+                                },
+                                (error) => {
+                                    alert('Gagal mengakses GPS: ' + error.message + '. Pastikan fitur lokasi aktif.');
+                                    resetButton();
+                                }
+                            );
+                        } else {
+                            alert('Browser Anda tidak mendukung GPS.');
+                            resetButton();
+                        }
+                    }
+                });
+
+                function resetButton() {
+                    const btn = document.getElementById('panicButton');
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-50');
+                    document.getElementById('panicStatus').classList.add('hidden');
+                }
+            </script>
+            <?php endif; ?>
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <?php if ($role == 'admin'): ?>
+                <?php if ($role == 'admin' || $role == 'guru'): ?>
                     <div class="bg-indigo-600 p-6 rounded-3xl shadow-lg text-white">
                         <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Total Pengguna</p>
                         <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['total_users']; ?></h3>
@@ -96,9 +182,9 @@ if ($role == 'admin') {
                         <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Fasilitas Rusak</p>
                         <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['total_facilities']; ?></h3>
                     </div>
-                    <div class="bg-purple-600 p-6 rounded-3xl shadow-lg text-white border-4 border-white/20">
-                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Belum Diproses</p>
-                        <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['pending_reports']; ?></h3>
+                    <div class="bg-red-700 p-6 rounded-3xl shadow-lg text-white border-4 border-white/20 animate-pulse">
+                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Panic Active</p>
+                        <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['active_panics']; ?></h3>
                     </div>
                 <?php else: ?>
                     <div class="bg-indigo-500 p-6 rounded-3xl shadow-lg text-white">
@@ -122,7 +208,7 @@ if ($role == 'admin') {
                 <?php endif; ?>
             </div>
 
-            <?php if ($role == 'admin' && !empty($chart_labels)): ?>
+            <?php if (($role == 'admin' || $role == 'guru') && !empty($chart_labels)): ?>
             <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                 <h4 class="text-lg font-bold text-gray-800 mb-6">Tren Kebahagiaan Siswa (7 Hari Terakhir)</h4>
                 <canvas id="moodChart" height="100"></canvas>
