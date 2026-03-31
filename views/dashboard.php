@@ -9,9 +9,24 @@ if (!is_logged_in()) {
 }
 
 $role = $_SESSION['role'];
+$user_id = $_SESSION['user_id'];
 $nama = $_SESSION['nama_lengkap'];
 
-// Ambil statistik lengkap untuk dashboard
+// Helper to get mood label
+function getMoodLabel($score) {
+    if (!$score) return 'Belum Ada';
+    $s = round($score);
+    switch ($s) {
+        case 5: return 'Sangat Senang';
+        case 4: return 'Senang';
+        case 3: return 'Biasa';
+        case 2: return 'Sedih';
+        case 1: return 'Sangat Sedih';
+        default: return 'Tidak Diketahui';
+    }
+}
+
+// Statistics for Dashboard
 $stats = [];
 if ($role == 'admin' || $role == 'guru') {
     $stats['total_users'] = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
@@ -20,11 +35,12 @@ if ($role == 'admin' || $role == 'guru') {
     $stats['pending_reports'] = $pdo->query("SELECT COUNT(*) FROM bullying_reports WHERE status = 'pending'")->fetchColumn();
     $stats['active_panics'] = $pdo->query("SELECT COUNT(*) FROM panic_events WHERE status = 'active'")->fetchColumn();
 
-    // Average Mood for Today
+    // Average Mood Today
     $avg_mood_today = $pdo->query("SELECT AVG(mood_score) FROM mood_tracking WHERE tanggal = CURRENT_DATE")->fetchColumn();
     $stats['avg_mood_today'] = $avg_mood_today ? round($avg_mood_today, 1) : null;
+    $stats['avg_mood_label'] = getMoodLabel($stats['avg_mood_today']);
 
-    // Data untuk Chart (Mood rata-rata 7 hari terakhir)
+    // Chart Data (7 Days)
     $chart_data = $pdo->query("SELECT tanggal, AVG(mood_score) as avg_mood FROM mood_tracking GROUP BY tanggal ORDER BY tanggal DESC LIMIT 7")->fetchAll();
     $chart_labels = [];
     $chart_values = [];
@@ -32,15 +48,30 @@ if ($role == 'admin' || $role == 'guru') {
         $chart_labels[] = date('d M', strtotime($c['tanggal']));
         $chart_values[] = round($c['avg_mood'], 1);
     }
-} else {
+}
+
+if ($role == 'siswa' || $role == 'guru') {
+    // Siswa/Guru Specific Stats (Personal)
     $stats['my_bullying'] = $pdo->prepare("SELECT COUNT(*) FROM bullying_reports WHERE pelapor_id = ?");
-    $stats['my_bullying']->execute([$_SESSION['user_id']]);
+    $stats['my_bullying']->execute([$user_id]);
     $stats['my_bullying'] = $stats['my_bullying']->fetchColumn();
 
     $stats['my_mood'] = $pdo->prepare("SELECT mood_score FROM mood_tracking WHERE user_id = ? AND tanggal = CURRENT_DATE");
-    $stats['my_mood']->execute([$_SESSION['user_id']]);
+    $stats['my_mood']->execute([$user_id]);
     $stats['my_mood'] = $stats['my_mood']->fetchColumn();
+    $stats['my_mood_label'] = getMoodLabel($stats['my_mood']);
+
+    // Weekly Mood for the user
+    $weekly_moods = $pdo->prepare("SELECT tanggal, mood_score FROM mood_tracking WHERE user_id = ? AND tanggal >= DATE_SUB(CURRENT_DATE, INTERVAL 6 DAY) ORDER BY tanggal ASC");
+    $weekly_moods->execute([$user_id]);
+    $weekly_data = [];
+    while ($row = $weekly_moods->fetch()) {
+        $day = strtoupper(date('D', strtotime($row['tanggal'])));
+        $weekly_data[$day] = $row['mood_score'];
+    }
 }
+
+$days_of_week = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -53,114 +84,54 @@ if ($role == 'admin' || $role == 'guru') {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; }
+        .bg-zen { background-color: #E2F2FF; } /* Soft Blue background like ZenMind */
+        .card-zen { background: white; border-radius: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); }
         .panic-active { animation: pulse-red 1s infinite; }
         @keyframes pulse-red {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
             70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
             100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
     </style>
 </head>
-<body class="bg-gray-50 flex min-h-screen">
+<body class="<?php echo ($role == 'admin') ? 'bg-gray-50' : 'bg-zen'; ?> flex min-h-screen">
     <?php include 'includes/sidebar.php'; ?>
 
     <main class="flex-grow flex flex-col overflow-hidden">
-        <header class="bg-white shadow-sm border-b p-4 flex justify-between items-center px-8">
-            <h2 class="text-xl font-bold text-gray-800">Selamat Datang, <?php echo e($nama); ?>!</h2>
-            <div class="flex items-center space-x-4">
-                <span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-bold uppercase tracking-wide"><?php echo e($role); ?></span>
+        <!-- Unified Header -->
+        <header class="bg-white/70 backdrop-blur-md shadow-sm border-b p-4 flex justify-between items-center px-8 z-10">
+            <h2 class="text-xl font-bold text-gray-800">
+                <?php echo ($role == 'admin') ? 'Admin Panel' : 'ZenMind'; ?>
+            </h2>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-bold text-gray-800 leading-none"><?php echo e($nama); ?></p>
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1"><?php echo e($role); ?></p>
+                </div>
+                <div class="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-black">
+                    <?php echo substr($nama, 0, 1); ?>
+                </div>
             </div>
         </header>
 
-        <div class="p-8 space-y-8 overflow-y-auto">
-            <!-- Panic Button Section (SISWA ONLY) -->
-            <?php if ($role == 'siswa'): ?>
-            <div class="bg-white p-8 rounded-3xl shadow-sm border-4 border-red-100 flex flex-col items-center justify-center space-y-4 text-center">
-                <div class="bg-red-100 p-4 rounded-full">
-                    <span class="text-5xl">🆘</span>
-                </div>
-                <div>
-                    <h3 class="text-2xl font-extrabold text-red-600">PANIC BUTTON</h3>
-                    <p class="text-gray-500 text-sm">Tekan tombol di bawah dalam keadaan darurat untuk membagikan lokasi GPS Anda ke pihak sekolah secara instan.</p>
-                </div>
-                <button id="panicButton" class="bg-red-600 hover:bg-red-700 text-white w-48 h-48 rounded-full shadow-2xl transition transform active:scale-95 flex flex-col items-center justify-center border-8 border-red-200">
-                    <span class="text-3xl font-black tracking-tighter">EMERGENCY</span>
-                    <span class="text-[10px] font-bold opacity-70 mt-1 uppercase">Tekan Di Sini</span>
-                </button>
-                <div id="panicStatus" class="hidden text-sm font-bold p-3 rounded-xl"></div>
-            </div>
+        <div class="p-4 md:p-8 space-y-6 overflow-y-auto">
 
-            <script>
-                document.getElementById('panicButton').addEventListener('click', function() {
-                    if (confirm('Konfirmasi kirim sinyal darurat (Emergency Signal)? Lokasi Anda akan dibagikan ke sekolah.')) {
-                        const statusDiv = document.getElementById('panicStatus');
-                        statusDiv.className = 'block text-sm font-bold p-3 rounded-xl bg-indigo-50 text-indigo-700 italic';
-                        statusDiv.innerText = '🛰️ Sedang mengambil lokasi GPS...';
-                        this.disabled = true;
-                        this.classList.add('opacity-50');
-
-                        if ("geolocation" in navigator) {
-                            navigator.geolocation.getCurrentPosition(
-                                (position) => {
-                                    const lat = position.coords.latitude;
-                                    const lng = position.coords.longitude;
-
-                                    fetch('../controllers/panic_handler.php', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ lat: lat, lng: lng })
-                                    })
-                                    .then(res => res.json())
-                                    .then(data => {
-                                        if (data.success) {
-                                            statusDiv.className = 'block text-sm font-bold p-3 rounded-xl bg-green-100 text-green-700';
-                                            statusDiv.innerText = '✅ ' + data.message;
-                                            this.classList.add('panic-active');
-                                            this.classList.remove('opacity-50');
-                                            this.innerHTML = '<span class="text-3xl font-black">ACTIVE</span>';
-                                        } else {
-                                            alert('Gagal mengirim sinyal: ' + data.message);
-                                            resetButton();
-                                        }
-                                    });
-                                },
-                                (error) => {
-                                    alert('Gagal mengakses GPS: ' + error.message + '. Pastikan fitur lokasi aktif.');
-                                    resetButton();
-                                }
-                            );
-                        } else {
-                            alert('Browser Anda tidak mendukung GPS.');
-                            resetButton();
-                        }
-                    }
-                });
-
-                function resetButton() {
-                    const btn = document.getElementById('panicButton');
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50');
-                    document.getElementById('panicStatus').classList.add('hidden');
-                }
-            </script>
-            <?php endif; ?>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                <?php if ($role == 'admin' || $role == 'guru'): ?>
+            <?php if ($role == 'admin'): ?>
+                <!-- ADMIN DASHBOARD (Formal Layout) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                     <div class="bg-indigo-600 p-6 rounded-3xl shadow-lg text-white">
-                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Total Pengguna</p>
+                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Total Users</p>
                         <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['total_users']; ?></h3>
                     </div>
                     <div class="bg-red-500 p-6 rounded-3xl shadow-lg text-white">
-                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Laporan Bullying</p>
+                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Bullying</p>
                         <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['total_bullying']; ?></h3>
                     </div>
                     <div class="bg-amber-500 p-6 rounded-3xl shadow-lg text-white">
-                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Fasilitas Rusak</p>
+                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Fasilitas</p>
                         <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['total_facilities']; ?></h3>
                     </div>
-                    <div class="bg-red-700 p-6 rounded-3xl shadow-lg text-white border-4 border-white/20 animate-pulse relative overflow-hidden">
-                        <div class="absolute -right-2 -top-2 text-4xl opacity-20">🆘</div>
+                    <div class="bg-red-700 p-6 rounded-3xl shadow-lg text-white border-4 border-white/20 animate-pulse">
                         <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Panic Active</p>
                         <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['active_panics']; ?></h3>
                     </div>
@@ -168,67 +139,184 @@ if ($role == 'admin' || $role == 'guru') {
                         <div class="absolute -right-2 -top-2 text-4xl opacity-20">💖</div>
                         <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Rata Mood Hari Ini</p>
                         <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['avg_mood_today'] ?: '0.0'; ?></h3>
-                        <p class="text-[9px] mt-1 font-bold uppercase tracking-tighter italic">Skala: 1.0 - 5.0</p>
+                        <p class="text-[9px] mt-1 font-bold uppercase tracking-tighter italic"><?php echo $stats['avg_mood_label']; ?></p>
                     </div>
-                <?php else: ?>
-                    <div class="bg-indigo-500 p-6 rounded-3xl shadow-lg text-white">
-                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Laporan Saya</p>
-                        <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['my_bullying']; ?></h3>
-                    </div>
-                    <div class="bg-green-500 p-6 rounded-3xl shadow-lg text-white">
-                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Mood Hari Ini</p>
-                        <h3 class="text-3xl font-extrabold mt-1">
-                            <?php
-                                $m = $stats['my_mood'];
-                                if (!$m) echo "Belum Isi";
-                                else if ($m == 5) echo "🤩";
-                                else if ($m == 4) echo "😊";
-                                else if ($m == 3) echo "😐";
-                                else if ($m == 2) echo "😟";
-                                else echo "😢";
-                            ?>
-                        </h3>
-                    </div>
-                <?php endif; ?>
-            </div>
+                </div>
 
-            <?php if (($role == 'admin' || $role == 'guru') && !empty($chart_labels)): ?>
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                <h4 class="text-lg font-bold text-gray-800 mb-6">Tren Kebahagiaan Siswa (7 Hari Terakhir)</h4>
-                <canvas id="moodChart" height="100"></canvas>
-            </div>
-            <script>
-                const ctx = document.getElementById('moodChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: <?php echo json_encode($chart_labels); ?>,
-                        datasets: [{
-                            label: 'Rata-rata Skor Mood',
-                            data: <?php echo json_encode($chart_values); ?>,
-                            borderColor: '#4f46e5',
-                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 3,
-                            pointBackgroundColor: '#4f46e5'
-                        }]
-                    },
-                    options: {
-                        scales: { y: { min: 1, max: 5 } },
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            </script>
+                <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+                    <h4 class="text-lg font-bold text-gray-800 mb-6">Tren Kebahagiaan Siswa</h4>
+                    <canvas id="moodChart" height="100"></canvas>
+                </div>
+            <?php else: ?>
+                <!-- SISWA & GURU DASHBOARD (ZenMind Aesthetic) -->
+                <div class="max-w-4xl mx-auto space-y-8">
+                    <!-- Profile Card -->
+                    <div class="card-zen p-10 flex flex-col items-center text-center">
+                         <div class="relative mb-6">
+                            <div class="w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden">
+                                <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($nama); ?>&background=random&size=128" alt="Avatar">
+                            </div>
+                            <div class="absolute -bottom-2 -right-2 bg-indigo-600 text-white w-10 h-10 rounded-full border-4 border-white flex items-center justify-center font-bold text-xs">
+                                75%
+                            </div>
+                         </div>
+                         <h1 class="text-2xl font-extrabold text-gray-800"><?php echo e($nama); ?></h1>
+                         <p class="text-gray-400 font-medium text-sm mt-1 uppercase tracking-widest"><?php echo e($_SESSION['role']); ?> • <?php echo e($_SESSION['kelas'] ?? 'STAFF'); ?></p>
+                    </div>
+
+                    <!-- Statistics Grid -->
+                    <div class="grid grid-cols-3 gap-6">
+                        <div class="bg-[#D8F3C5] p-6 rounded-[30px] shadow-sm text-center">
+                            <p class="text-gray-600 font-bold text-[10px] uppercase tracking-widest mb-2">Laporan</p>
+                            <h4 class="text-3xl font-black text-[#4B7C2F]"><?php echo $stats['my_bullying']; ?></h4>
+                        </div>
+                        <div class="bg-[#FDE2FF] p-6 rounded-[30px] shadow-sm text-center border-2 border-white">
+                            <p class="text-gray-600 font-bold text-[10px] uppercase tracking-widest mb-2">Mood</p>
+                            <h4 class="text-3xl font-black text-[#A147AF]">
+                                <?php
+                                    $m = $stats['my_mood'];
+                                    if (!$m) echo "—";
+                                    else if ($m == 5) echo "🤩";
+                                    else if ($m == 4) echo "😊";
+                                    else if ($m == 3) echo "😐";
+                                    else if ($m == 2) echo "😟";
+                                    else echo "😢";
+                                ?>
+                            </h4>
+                        </div>
+                        <div class="bg-[#E2F2FF] p-6 rounded-[30px] shadow-sm text-center">
+                            <p class="text-gray-600 font-bold text-[10px] uppercase tracking-widest mb-2">Poin</p>
+                            <h4 class="text-3xl font-black text-[#4285F4]">100</h4>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Mood Tracker -->
+                    <div class="card-zen p-8">
+                        <div class="flex justify-between items-center mb-6">
+                             <h4 class="font-black text-gray-800 uppercase tracking-widest text-sm">Mood Tracker</h4>
+                             <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"><?php echo date('M Y'); ?></span>
+                        </div>
+                        <div class="flex justify-between items-center px-2">
+                            <?php foreach ($days_of_week as $day): ?>
+                                <div class="flex flex-col items-center">
+                                    <div class="text-2xl mb-2 grayscale opacity-30 hover:grayscale-0 hover:opacity-100 transition duration-300">
+                                        <?php
+                                            $s = $weekly_data[$day] ?? 0;
+                                            if ($s == 5) echo "🤩";
+                                            else if ($s == 4) echo "😊";
+                                            else if ($s == 3) echo "😐";
+                                            else if ($s == 2) echo "😟";
+                                            else if ($s == 1) echo "😢";
+                                            else echo "⚪";
+                                        ?>
+                                    </div>
+                                    <span class="text-[9px] font-black text-gray-400"><?php echo $day; ?></span>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <!-- Panic Button (Siswa Only) -->
+                    <?php if ($role == 'siswa'): ?>
+                    <button id="panicButton" class="w-full bg-red-600 hover:bg-red-700 text-white py-6 rounded-[40px] shadow-2xl shadow-red-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-4 border-b-8 border-red-800">
+                        <span class="text-4xl">🆘</span>
+                        <div class="text-left">
+                            <h4 class="font-black uppercase tracking-tighter text-xl leading-none">PANIC BUTTON</h4>
+                            <p class="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-1">Gunakan dalam keadaan darurat</p>
+                        </div>
+                    </button>
+                    <?php endif; ?>
+
+                    <!-- Welcome Text -->
+                    <div class="text-center py-6">
+                        <h2 class="text-3xl font-black text-indigo-900 leading-tight">Explore the Power of Your Mind 🧠🚀</h2>
+                        <p class="text-gray-500 text-sm mt-3 px-8 leading-relaxed">Pantau fokusmu, kelola emosimu, dan tingkatkan stabilitas mentalmu secara efektif bersama SI-SONYA.</p>
+                    </div>
+                </div>
             <?php endif; ?>
 
-            <div class="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center gap-10">
-                <div class="flex-grow space-y-4">
-                    <h1 class="text-4xl font-extrabold text-indigo-900 leading-tight">Sekolah Aman, Siswa Nyaman, Masa Depan Gemilang! 🌈</h1>
-                    <p class="text-gray-600 text-lg">Terima kasih telah berkontribusi dalam menjaga ekosistem sekolah melalui SI-SONYA.</p>
-                </div>
-            </div>
         </div>
     </main>
+
+    <script>
+        <?php if ($role == 'admin' || $role == 'guru'): ?>
+        const ctx = document.getElementById('moodChart').getContext('2d');
+        const moodLabels = {
+            1: 'Sangat Sedih 😢',
+            2: 'Sedih 😟',
+            3: 'Biasa 😐',
+            4: 'Senang 😊',
+            5: 'Sangat Senang 🤩'
+        };
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: <?php echo json_encode($chart_labels); ?>,
+                datasets: [{
+                    label: 'Rata-rata Skor Mood',
+                    data: <?php echo json_encode($chart_values); ?>,
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 4,
+                    pointBackgroundColor: '#4f46e5',
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        min: 1,
+                        max: 5,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return moodLabels[value] || value;
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return 'Mood: ' + context.parsed.y + ' (' + moodLabels[Math.round(context.parsed.y)] + ')';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        <?php endif; ?>
+
+        // Siswa Panic logic (Re-using old verified script)
+        const pBtn = document.getElementById('panicButton');
+        if (pBtn) {
+            pBtn.addEventListener('click', function() {
+                if (confirm('Bagi lokasi darurat ke pihak sekolah?')) {
+                    if ("geolocation" in navigator) {
+                        navigator.geolocation.getCurrentPosition((pos) => {
+                            fetch('../controllers/panic_handler.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('✅ BERHASIL: Bantuan dalam perjalanan.');
+                                    pBtn.classList.add('panic-active');
+                                }
+                            });
+                        }, (err) => alert('Gagal GPS: ' + err.message));
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
