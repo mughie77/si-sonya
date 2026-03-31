@@ -19,31 +19,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $deskripsi = trim($_POST['deskripsi']);
         $pelapor_id = $_SESSION['user_id'];
 
-        // Handle upload foto
         $foto_name = null;
         if (isset($_FILES['foto_fasilitas']) && $_FILES['foto_fasilitas']['error'] === 0) {
             $allowed = ['jpg', 'jpeg', 'png', 'gif'];
             $ext = strtolower(pathinfo($_FILES['foto_fasilitas']['name'], PATHINFO_EXTENSION));
             if (in_array($ext, $allowed)) {
                 $foto_name = 'fas_' . bin2hex(random_bytes(10)) . '.' . $ext;
+                if (!is_dir('../uploads')) mkdir('../uploads', 0777, true);
                 move_uploaded_file($_FILES['foto_fasilitas']['tmp_name'], '../uploads/' . $foto_name);
-            } else {
-                $error = "Format file tidak diizinkan!";
-            }
+            } else { $error = "Format file tidak diizinkan!"; }
         }
 
         if (!$error) {
             $stmt = $pdo->prepare("INSERT INTO facility_reports (pelapor_id, nama_fasilitas, deskripsi_kerusakan, foto_fasilitas) VALUES (?, ?, ?, ?)");
             if ($stmt->execute([$pelapor_id, $nama_fasilitas, $deskripsi, $foto_name])) {
-                $success = "Laporan fasilitas berhasil dikirim! Tim sarpras akan segera mengeceknya.";
-            } else {
-                $error = "Terjadi kesalahan saat mengirim laporan.";
-            }
+                $success = "Laporan fasilitas terkirim! Tim sarpras akan segera mengeceknya.";
+            } else { $error = "Terjadi kesalahan saat mengirim laporan."; }
         }
     }
 }
 
-// Ambil riwayat laporan fasilitas saya
 $stmt = $pdo->prepare("SELECT * FROM facility_reports WHERE pelapor_id = ? ORDER BY created_at DESC");
 $stmt->execute([$_SESSION['user_id']]);
 $riwayat = $stmt->fetchAll();
@@ -57,81 +52,85 @@ $csrf_token = generate_csrf_token();
     <title>Lapor Fasilitas - SI-SONYA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-    </style>
+    <style> body { font-family: 'Poppins', sans-serif; } </style>
 </head>
-<body class="bg-gray-50 flex min-h-screen">
-    <?php include 'includes/sidebar.php'; ?>
+<body class="bg-gray-50 min-h-screen">
+    <?php include 'includes/header.php'; ?>
 
-    <main class="flex-grow flex flex-col overflow-hidden">
-        <header class="bg-white shadow-sm border-b p-4 px-8 flex justify-between items-center">
-            <h2 class="text-xl font-bold text-gray-800">Lapor Fasilitas Rusak</h2>
-            <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold uppercase tracking-wide">Fasilitas Nyaman</span>
-        </header>
+    <main class="max-w-6xl mx-auto p-6 md:p-10 space-y-8 pb-32">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+            <div>
+                <h2 class="text-3xl font-black text-indigo-900 uppercase tracking-tighter">Lapor Kerusakan</h2>
+                <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Bantu Kami Merawat Sekolah</p>
+            </div>
+            <span class="px-4 py-2 bg-amber-100 text-amber-700 rounded-2xl text-[10px] font-black uppercase tracking-widest">Fasilitas Nyaman</span>
+        </div>
 
-        <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 overflow-y-auto">
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 h-fit">
-                <h3 class="text-2xl font-bold text-indigo-900 mb-6">Detail Kerusakan</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <div class="bg-white p-10 rounded-[40px] shadow-sm border border-gray-100 h-fit">
+                <h3 class="text-xl font-black text-indigo-900 mb-8 uppercase tracking-tighter">Detail Kerusakan</h3>
 
                 <?php if ($success): ?>
-                    <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-lg text-amber-700 text-sm font-medium"><?php echo e($success); ?></div>
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-8 rounded-2xl text-amber-700 text-sm font-medium"><?php echo e($success); ?></div>
                 <?php endif; ?>
                 <?php if ($error): ?>
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-2xl text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
                 <?php endif; ?>
 
-                <form action="" method="POST" enctype="multipart/form-data" class="space-y-5">
+                <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Fasilitas</label>
-                        <input type="text" name="nama_fasilitas" required placeholder="Contoh: Meja Kelas 10A, Kran Toilet"
-                            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200">
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Nama Fasilitas</label>
+                        <input type="text" name="nama_fasilitas" required placeholder="Contoh: AC Ruang Guru, Kursi Kantin"
+                            class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Deskripsi Kerusakan</label>
-                        <textarea name="deskripsi" required rows="4" placeholder="Ceritakan detail kerusakan yang terjadi..."
-                            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200"></textarea>
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Deskripsi Kerusakan</label>
+                        <textarea name="deskripsi" required rows="4" placeholder="Jelaskan detail kerusakan yang Anda temui..."
+                            class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Unggah Foto (Opsional)</label>
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Lampiran Foto (Opsional)</label>
                         <input type="file" name="foto_fasilitas"
-                            class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none transition duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-amber-600 file:text-white hover:file:bg-amber-700">
                     </div>
                     <button type="submit"
-                        class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-amber-500/30 transition transform hover:-translate-y-1">
+                        class="w-full bg-amber-600 hover:bg-amber-700 text-white font-black py-5 rounded-[25px] shadow-xl shadow-amber-100 transition transform active:scale-95 uppercase text-xs tracking-widest">
                         Kirim Laporan Kerusakan
                     </button>
                 </form>
             </div>
 
             <!-- Riwayat -->
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                <h3 class="text-2xl font-bold text-indigo-900 mb-6">Status Laporan Fasilitas</h3>
-                <div class="space-y-4 pr-2">
+            <div class="bg-white p-10 rounded-[40px] shadow-sm border border-gray-100">
+                <h3 class="text-xl font-black text-indigo-900 mb-8 uppercase tracking-tighter">Status Laporan Anda</h3>
+                <div class="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                     <?php if (empty($riwayat)): ?>
-                        <p class="text-gray-500 text-center py-10">Belum ada laporan fasilitas.</p>
+                        <div class="text-center py-20">
+                            <div class="text-4xl mb-4 opacity-20">🛠️</div>
+                            <p class="text-gray-400 text-xs font-bold uppercase tracking-widest">Belum ada laporan</p>
+                        </div>
                     <?php endif; ?>
                     <?php foreach ($riwayat as $r): ?>
-                        <div class="p-5 border border-gray-100 rounded-2xl bg-gray-50/50 flex items-center gap-4 group">
-                             <div class="w-16 h-16 bg-indigo-100 rounded-xl flex-shrink-0 flex items-center justify-center text-indigo-600 font-bold overflow-hidden">
+                        <div class="p-6 border border-gray-50 rounded-[30px] bg-gray-50/50 flex items-center gap-6 group hover:bg-white hover:border-blue-100 transition shadow-sm">
+                             <div class="w-16 h-16 bg-white rounded-2xl flex-shrink-0 flex items-center justify-center text-indigo-600 font-bold overflow-hidden shadow-sm">
                                 <?php if ($r['foto_fasilitas']): ?>
                                     <img src="../uploads/<?php echo e($r['foto_fasilitas']); ?>" class="w-full h-full object-cover">
                                 <?php else: ?>
-                                    🛠️
+                                    🔧
                                 <?php endif; ?>
                              </div>
                              <div class="flex-grow">
-                                <h4 class="font-bold text-gray-800"><?php echo e($r['nama_fasilitas']); ?></h4>
-                                <p class="text-gray-500 text-xs mt-1 italic"><?php echo e(date('d M Y', strtotime($r['created_at']))); ?></p>
+                                <h4 class="font-black text-gray-800 uppercase tracking-tight text-sm"><?php echo e($r['nama_fasilitas']); ?></h4>
+                                <p class="text-gray-400 text-[10px] mt-1 font-bold italic"><?php echo e(date('d M Y, H:i', strtotime($r['created_at']))); ?></p>
                                 <?php
-                                    $status_color = 'text-amber-500';
-                                    if ($r['status'] == 'proses') $status_color = 'text-blue-500';
-                                    if ($r['status'] == 'selesai') $status_color = 'text-green-500';
+                                    $status_class = 'bg-amber-100 text-amber-700';
+                                    if ($r['status'] == 'proses') $status_class = 'bg-blue-100 text-blue-700';
+                                    if ($r['status'] == 'selesai') $status_class = 'bg-emerald-100 text-emerald-700';
                                 ?>
-                                <p class="text-[10px] font-extrabold uppercase mt-1 <?php echo $status_color; ?>">
-                                    Status: <?php echo e($r['status']); ?>
-                                </p>
+                                <span class="inline-block px-3 py-1 mt-2 <?php echo $status_class; ?> rounded-full text-[9px] font-black uppercase tracking-widest">
+                                    <?php echo e($r['status']); ?>
+                                </span>
                              </div>
                         </div>
                     <?php endforeach; ?>
@@ -139,5 +138,7 @@ $csrf_token = generate_csrf_token();
             </div>
         </div>
     </main>
+
+    <?php include 'includes/footer_nav.php'; ?>
 </body>
 </html>

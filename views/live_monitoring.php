@@ -16,62 +16,59 @@ $role = $_SESSION['role'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Monitoring - SI-SONYA</title>
+    <title>Pantauan Langsung - SI-SONYA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Poppins', sans-serif; }
         .blink { animation: blinker 1s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
+        .bg-security { background-color: #0F172A; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 flex min-h-screen">
-    <?php include 'includes/sidebar.php'; ?>
+<body class="bg-security text-gray-100 min-h-screen">
+    <?php include 'includes/header.php'; ?>
 
-    <main class="flex-grow flex flex-col overflow-hidden">
-        <header class="bg-black/50 backdrop-blur-md border-b border-gray-800 p-4 px-8 flex justify-between items-center">
+    <main class="max-w-5xl mx-auto p-6 md:p-10 space-y-8 pb-32">
+        <header class="flex justify-between items-center border-b border-gray-800 pb-6">
             <div class="flex items-center gap-4">
                 <div class="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
-                <h2 class="text-xl font-black uppercase tracking-widest text-white">Live Security Feed</h2>
-                <span id="last-update" class="text-xs text-gray-500 font-mono">Loading...</span>
+                <h2 class="text-2xl font-black uppercase tracking-widest text-white">Live Security Feed</h2>
             </div>
-            <div class="flex items-center gap-4">
-                <span class="px-3 py-1 bg-indigo-900/50 text-indigo-300 rounded-full text-[10px] font-bold uppercase"><?php echo e($role); ?>: <?php echo e($nama); ?></span>
-            </div>
+            <span id="last-update" class="text-[10px] text-gray-500 font-mono font-bold uppercase">Memuat...</span>
         </header>
 
-        <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 overflow-y-auto">
-            <!-- Panic Button Section -->
-            <div class="space-y-4">
-                <div class="flex items-center justify-between border-b border-red-900/30 pb-2">
-                    <h3 class="text-lg font-bold text-red-400 flex items-center gap-2">
-                        <span class="text-2xl">🆘</span> ACTIVE PANIC ALERTS
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Panic Section -->
+            <div class="space-y-6">
+                <div class="flex items-center justify-between border-b border-red-900/30 pb-3">
+                    <h3 class="text-lg font-black text-red-400 flex items-center gap-3 tracking-tighter">
+                        <span class="text-2xl">🚨</span> SINYAL DARURAT AKTIF
                     </h3>
-                    <span id="panic-count" class="bg-red-600 text-white text-xs px-2 py-1 rounded-full font-bold">0</span>
+                    <span id="panic-count" class="bg-red-600 text-white text-[10px] px-2.5 py-1 rounded-full font-black">0</span>
                 </div>
-                <div id="panic-container" class="space-y-3">
-                    <!-- Dynamic Content -->
-                    <div class="p-10 text-center text-gray-600 italic">No active emergencies.</div>
+                <div id="panic-container" class="space-y-4">
+                    <div class="p-10 text-center text-gray-600 italic">Memindai sinyal...</div>
                 </div>
             </div>
 
-            <!-- Bullying Feed Section -->
-            <div class="space-y-4">
-                <div class="flex items-center justify-between border-b border-indigo-900/30 pb-2">
-                    <h3 class="text-lg font-bold text-indigo-400 flex items-center gap-2">
-                        <span class="text-2xl">🛡️</span> LATEST BULLYING REPORTS (24H)
+            <!-- Bullying Section -->
+            <div class="space-y-6">
+                <div class="flex items-center justify-between border-b border-indigo-900/30 pb-3">
+                    <h3 class="text-lg font-black text-indigo-400 flex items-center gap-3 tracking-tighter">
+                        <span class="text-2xl">🛡️</span> LAPORAN BULLYING (24 J)
                     </h3>
-                    <span id="bullying-count" class="bg-indigo-600 text-white text-xs px-2 py-1 rounded-full font-bold">0</span>
+                    <span id="bullying-count" class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded-full font-black">0</span>
                 </div>
-                <div id="bullying-container" class="space-y-3">
-                    <!-- Dynamic Content -->
-                    <div class="p-10 text-center text-gray-600 italic">No reports in the last 24 hours.</div>
+                <div id="bullying-container" class="space-y-4">
+                    <div class="p-10 text-center text-gray-600 italic">Memantau laporan...</div>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Alert Sound -->
+    <?php include 'includes/footer_nav.php'; ?>
+
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
     <script>
@@ -86,71 +83,63 @@ $role = $_SESSION['role'];
             fetch('../controllers/live_data.php')
                 .then(res => res.json())
                 .then(data => {
-                    lastUpdateSpan.innerText = 'Last Update: ' + data.timestamp;
+                    lastUpdateSpan.innerText = 'Update Terakhir: ' + data.timestamp;
 
-                    // Play sound if new emergency
                     if (data.alert) {
-                        alertSound.play().catch(e => console.log("Audio play blocked by browser"));
-                        // Show browser notification if possible
+                        alertSound.play().catch(e => console.log("Audio diblokir"));
                         if (Notification.permission === "granted") {
-                            new Notification("🚨 EMERGENCY!", { body: "New Panic Button Alert detected!" });
+                            new Notification("🚨 DARURAT!", { body: "Sinyal Panik Baru Terdeteksi!" });
                         }
                     }
 
-                    // Update Panics
                     panicCount.innerText = data.panics.length;
                     if (data.panics.length > 0) {
                         panicContainer.innerHTML = data.panics.map(p => `
-                            <div class="bg-red-900/20 border border-red-500/30 p-5 rounded-3xl relative overflow-hidden group hover:border-red-500 transition-all duration-300">
-                                <div class="absolute top-0 right-0 p-3">
-                                    <div class="w-4 h-4 bg-red-500 rounded-full blink shadow-[0_0_15px_rgba(239,68,68,1)]"></div>
+                            <div class="bg-red-900/10 border border-red-500/30 p-6 rounded-[35px] relative overflow-hidden group hover:border-red-500 transition-all">
+                                <div class="absolute top-0 right-0 p-4">
+                                    <div class="w-4 h-4 bg-red-500 rounded-full blink"></div>
                                 </div>
-                                <div class="flex justify-between items-start mb-2">
+                                <div class="flex justify-between items-start mb-4">
                                     <div>
-                                        <h4 class="text-xl font-black text-red-200 uppercase">${p.nama_lengkap}</h4>
-                                        <p class="text-xs text-red-400 font-mono">${p.nis_nip} • Kelas ${p.kelas}</p>
+                                        <h4 class="text-xl font-black text-red-100 uppercase tracking-tighter">${p.nama_lengkap}</h4>
+                                        <p class="text-[10px] text-red-400 font-bold uppercase tracking-widest">${p.nis_nip} • KELAS ${p.kelas}</p>
                                     </div>
-                                    <span class="text-[10px] bg-red-600 text-white px-2 py-1 rounded-lg font-bold">${p.created_at}</span>
+                                    <span class="text-[9px] bg-red-600/20 text-red-400 px-2 py-1 rounded-lg font-black">${p.created_at}</span>
                                 </div>
-                                <div class="mt-4 flex gap-2">
-                                    <a href="https://www.google.com/maps?q=${p.latitude},${p.longitude}" target="_blank" class="flex-grow bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl text-center font-bold text-sm transition shadow-lg">📍 LIHAT LOKASI</a>
-                                </div>
+                                <a href="https://www.google.com/maps?q=${p.latitude},${p.longitude}" target="_blank" class="block w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-2xl text-center font-black text-xs transition uppercase tracking-widest shadow-lg">📍 Buka Lokasi GPS</a>
                             </div>
                         `).join('');
                     } else {
-                        panicContainer.innerHTML = '<div class="p-10 text-center text-gray-600 italic">Semua aman. Tidak ada sinyal darurat aktif.</div>';
+                        panicContainer.innerHTML = '<div class="p-10 text-center text-gray-600 italic">Situasi Kondusif. Tidak ada sinyal darurat.</div>';
                     }
 
-                    // Update Bullying
                     bullyingCount.innerText = data.bullying.length;
                     if (data.bullying.length > 0) {
                         bullyingContainer.innerHTML = data.bullying.map(b => `
-                            <div class="bg-gray-800/50 border border-indigo-500/20 p-5 rounded-3xl hover:border-indigo-500/50 transition-all">
+                            <div class="bg-gray-800/40 border border-indigo-500/20 p-6 rounded-[35px] hover:border-indigo-500/50 transition-all">
                                 <div class="flex justify-between items-start mb-3">
-                                    <span class="px-3 py-1 bg-indigo-900 text-indigo-300 text-[10px] font-black rounded-full uppercase">LAPORAN BARU</span>
-                                    <span class="text-[10px] text-gray-500">${b.created_at}</span>
+                                    <span class="px-3 py-1 bg-indigo-900/50 text-indigo-300 text-[9px] font-black rounded-full uppercase tracking-widest border border-indigo-500/20">Laporan Baru</span>
+                                    <span class="text-[9px] text-gray-500 font-bold">${b.created_at}</span>
                                 </div>
-                                <p class="text-sm text-gray-200 leading-relaxed mb-3">"${b.deskripsi.substring(0, 100)}..."</p>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-xs text-indigo-400 font-bold uppercase italic">📍 ${b.lokasi}</span>
-                                    <a href="kelola_laporan.php" class="text-xs text-indigo-500 hover:underline">Detail &rarr;</a>
+                                <p class="text-sm text-gray-300 leading-relaxed mb-4 italic">"${b.deskripsi.substring(0, 120)}..."</p>
+                                <div class="flex items-center justify-between pt-4 border-t border-gray-800">
+                                    <span class="text-[10px] text-indigo-400 font-black uppercase italic">📍 ${b.lokasi}</span>
+                                    <a href="kelola_laporan.php" class="text-[10px] text-indigo-500 font-black uppercase hover:underline tracking-widest">Detail &rarr;</a>
                                 </div>
                             </div>
                         `).join('');
                     } else {
-                        bullyingContainer.innerHTML = '<div class="p-10 text-center text-gray-600 italic">Tidak ada laporan bullying terbaru.</div>';
+                        bullyingContainer.innerHTML = '<div class="p-10 text-center text-gray-600 italic">Tidak ada laporan bullying terbaru hari ini.</div>';
                     }
                 });
         }
 
-        // Request notification permission
         if (Notification.permission !== "granted") {
             Notification.requestPermission();
         }
 
-        // Poll every 5 seconds
         setInterval(fetchData, 5000);
-        fetchData(); // Initial load
+        fetchData();
     </script>
 </body>
 </html>

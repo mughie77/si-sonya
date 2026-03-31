@@ -22,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['password'])) {
-                // Secure Session
                 session_regenerate_id(true);
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
@@ -34,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Username atau password salah!";
             }
         } else {
-            $error = "Gagal terhubung ke database. Pastikan database sudah terpasang.";
+            $error = "Gagal terhubung ke database.";
         }
     }
 }
@@ -44,60 +43,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - SI-SONYA</title>
+    <title>Masuk - SI-SONYA</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Poppins', sans-serif; } </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20">
-        <div class="p-8">
-            <div class="text-center mb-10">
-                <div class="inline-block p-4 bg-indigo-100 rounded-2xl mb-4">
-                    <svg class="w-12 h-12 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                </div>
-                <h1 class="text-3xl font-bold text-gray-800 tracking-tight">SI-SONYA</h1>
-                <p class="text-gray-500 mt-2">Sekolah Aman dan Nyaman</p>
+<body class="bg-[#E2F2FF] min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-md w-full">
+        <!-- Logo/Header -->
+        <div class="text-center mb-12">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-[30px] shadow-xl shadow-blue-100 mb-6 text-4xl">
+                🏫
             </div>
+            <h1 class="text-4xl font-black text-indigo-900 tracking-tighter uppercase">SI-SONYA</h1>
+            <p class="text-blue-400 text-[10px] font-black uppercase tracking-[0.3em] mt-2">Sistem Sekolah Aman & Nyaman</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-white rounded-[50px] shadow-2xl shadow-blue-200/50 p-10 md:p-12 border border-white relative overflow-hidden">
+            <!-- Decorative circle -->
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-50 rounded-full opacity-50"></div>
+
+            <h2 class="text-2xl font-black text-indigo-900 mb-8 uppercase tracking-tighter relative">Selamat Datang</h2>
 
             <?php if ($error): ?>
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm">
-                    <?php echo e($error); ?>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-2xl text-red-700 text-[11px] font-bold uppercase tracking-wider">
+                    ⚠️ <?php echo e($error); ?>
                 </div>
             <?php endif; ?>
 
-            <form action="" method="POST" class="space-y-6">
+            <form action="" method="POST" class="space-y-6 relative">
                 <input type="hidden" name="csrf_token" value="<?php echo generate_csrf_token(); ?>">
+
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                    <label class="block text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-2 ml-4">ID Pengguna (NIS/NIP)</label>
                     <input type="text" name="username" required
-                        class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200"
-                        placeholder="Masukkan username">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-                    <input type="password" name="password" required
-                        class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200"
-                        placeholder="Masukkan password">
+                        class="w-full px-8 py-5 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200 font-bold text-gray-700"
+                        placeholder="Contoh: 2024001">
                 </div>
 
-                <button type="submit"
-                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition duration-200">
-                    Masuk Sekarang
-                </button>
+                <div>
+                    <label class="block text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-2 ml-4">Kata Sandi</label>
+                    <input type="password" name="password" required
+                        class="w-full px-8 py-5 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200 font-bold text-gray-700"
+                        placeholder="••••••••">
+                </div>
+
+                <div class="pt-4">
+                    <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-[25px] shadow-xl shadow-blue-200 transition transform active:scale-95 uppercase text-xs tracking-widest">
+                        Masuk Sekarang
+                    </button>
+                </div>
             </form>
 
-            <div class="mt-8 text-center">
-                <p class="text-gray-500 text-sm">Belum punya akun? Hubungi Admin Sekolah</p>
+            <div class="mt-10 text-center relative pt-6 border-t border-gray-50">
+                <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Masalah login? <br> <span class="text-blue-500">Hubungi Admin Sekolah</span></p>
             </div>
         </div>
-        <div class="bg-gray-50 p-4 border-t border-gray-100 text-center">
-            <span class="text-xs text-gray-400 font-medium tracking-wider uppercase">Official Education Platform</span>
-        </div>
+
+        <!-- Footer Note -->
+        <p class="mt-12 text-center text-[10px] font-black text-indigo-900/30 uppercase tracking-[0.4em]">ZenMind Edition v6.0</p>
     </div>
 </body>
 </html>

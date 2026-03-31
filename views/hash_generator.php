@@ -26,50 +26,55 @@ $csrf_token = generate_csrf_token();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hash Generator - SI-SONYA Admin</title>
+    <title>Hash Generator - SI-SONYA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-    </style>
+    <style> body { font-family: 'Poppins', sans-serif; } </style>
 </head>
-<body class="bg-gray-50 flex min-h-screen">
-    <?php include 'includes/sidebar.php'; ?>
+<body class="bg-gray-50 min-h-screen">
+    <?php include 'includes/header.php'; ?>
 
-    <main class="flex-grow flex flex-col p-8 items-center justify-center overflow-y-auto">
-        <div class="max-w-2xl w-full bg-white p-10 rounded-3xl shadow-sm border border-gray-100 h-fit">
-            <h2 class="text-3xl font-extrabold text-indigo-900 mb-2">Password Hash Generator</h2>
-            <p class="text-gray-500 mb-10 text-sm italic">Gunakan alat ini untuk menghasilkan hash password yang aman untuk database Anda.</p>
+    <main class="max-w-2xl mx-auto p-6 md:p-10 space-y-8 pb-32">
+        <div class="text-center">
+            <h2 class="text-3xl font-black text-indigo-900 uppercase tracking-tighter">Hash Generator</h2>
+            <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Alat Keamanan Pengembang</p>
+        </div>
+
+        <div class="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100">
+            <h3 class="text-xl font-black text-indigo-900 mb-2 uppercase tracking-tighter">Buat Hash Password</h3>
+            <p class="text-gray-400 mb-8 text-xs font-medium italic">Gunakan alat ini untuk menghasilkan hash password yang aman untuk database Anda secara manual.</p>
 
             <form action="" method="POST" class="space-y-6">
                 <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Plain Password</label>
+                    <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Teks Biasa (Plain Password)</label>
                     <input type="text" name="plain_text" required value="<?php echo e($input); ?>"
-                        class="w-full px-6 py-4 rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200 text-lg"
-                        placeholder="Masukkan password di sini...">
+                        class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200 text-lg font-bold"
+                        placeholder="Ketik password di sini...">
                 </div>
 
                 <button type="submit"
-                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-indigo-500/30 transition transform hover:-translate-y-1">
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-[25px] shadow-xl shadow-blue-100 transition transform active:scale-95 uppercase text-xs tracking-widest">
                     Hasilkan Hash Sekarang
                 </button>
             </form>
 
             <?php if ($hash): ?>
-                <div class="mt-10 p-6 bg-gray-50 rounded-2xl border border-indigo-100">
-                    <label class="block text-xs font-bold text-indigo-400 uppercase tracking-widest mb-3">Hasil Hash:</label>
-                    <div class="bg-white p-4 rounded-xl border border-gray-200 font-mono text-xs break-all select-all cursor-pointer hover:bg-indigo-50 transition" title="Klik untuk menyeleksi">
+                <div class="mt-10 p-8 bg-indigo-50 rounded-[30px] border border-blue-100">
+                    <label class="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3 ml-2">Hasil Hash (BCRYPT):</label>
+                    <div class="bg-white p-5 rounded-2xl border border-gray-100 font-mono text-xs break-all select-all cursor-pointer hover:bg-blue-50 transition" title="Klik untuk menyeleksi">
                         <?php echo e($hash); ?>
                     </div>
-                    <p class="mt-4 text-[10px] text-gray-400 font-medium">*Gunakan hash ini untuk kolom `password` pada tabel `users`.</p>
+                    <p class="mt-4 text-[10px] text-indigo-400/60 font-black uppercase tracking-widest">*Gunakan hash ini untuk mengisi kolom `password` pada database.</p>
                 </div>
             <?php endif; ?>
+        </div>
 
-            <div class="mt-8 pt-8 border-t border-gray-50 text-center">
-                <a href="dashboard.php" class="text-indigo-600 hover:text-indigo-800 text-sm font-bold transition">← Kembali ke Dashboard</a>
-            </div>
+        <div class="text-center">
+            <a href="dashboard.php" class="inline-block px-8 py-3 bg-white text-blue-600 border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition">← Kembali ke Dashboard</a>
         </div>
     </main>
+
+    <?php include 'includes/footer_nav.php'; ?>
 </body>
 </html>

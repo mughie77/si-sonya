@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once '../config/security.php';
 require_once '../config/database.php';
 
@@ -58,93 +59,90 @@ $csrf_token = generate_csrf_token();
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Poppins', sans-serif; }
+        .bg-zen { background-color: #E2F2FF; }
+        .card-zen { background: white; border-radius: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.02); }
     </style>
 </head>
-<body class="bg-gray-50 flex min-h-screen">
-    <?php include 'includes/sidebar.php'; ?>
+<body class="bg-zen min-h-screen">
+    <?php include 'includes/header.php'; ?>
 
-    <main class="flex-grow flex flex-col overflow-hidden">
-        <header class="bg-white shadow-sm border-b p-4 px-8 flex justify-between items-center">
-            <h2 class="text-xl font-bold text-gray-800">Lapor Bullying</h2>
-            <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold uppercase tracking-wide">Privasi Terjamin</span>
-        </header>
+    <main class="max-w-4xl mx-auto p-6 md:p-10 space-y-8 pb-32">
+        <div class="card-zen p-8 md:p-10">
+            <h3 class="text-2xl font-black text-indigo-900 mb-6 uppercase tracking-tighter">Formulir Laporan Bullying</h3>
 
-        <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 overflow-y-auto">
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 h-fit">
-                <h3 class="text-2xl font-bold text-indigo-900 mb-6">Formulir Laporan</h3>
+            <?php if ($success): ?>
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-2xl text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
+            <?php endif; ?>
+            <?php if ($error): ?>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-2xl text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
+            <?php endif; ?>
 
-                <?php if ($success): ?>
-                    <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-lg text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
-                <?php endif; ?>
-                <?php if ($error): ?>
-                    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
-                <?php endif; ?>
-
-                <form action="" method="POST" enctype="multipart/form-data" class="space-y-5">
-                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Terlapor (Opsional/Boleh Inisial)</label>
-                        <input type="text" name="terlapor_nama" placeholder="Siapa yang melakukan?"
-                            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal Kejadian</label>
-                            <input type="date" name="tanggal_kejadian" required
-                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Lokasi</label>
-                            <input type="text" name="lokasi" required placeholder="Contoh: Kantin, Kelas"
-                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Deskripsi Kejadian</label>
-                        <textarea name="deskripsi" required rows="4" placeholder="Ceritakan apa yang terjadi secara detail..."
-                            class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition duration-200"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Unggah Bukti (Opsional)</label>
-                        <input type="file" name="bukti_foto"
-                            class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none transition duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-                    </div>
-                    <button type="submit"
-                        class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-red-500/30 transition transform hover:-translate-y-1">
-                        Kirim Laporan Saya
-                    </button>
-                </form>
-            </div>
-
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-                <h3 class="text-2xl font-bold text-indigo-900 mb-6">Riwayat Laporan Anda</h3>
-                <div class="space-y-4 pr-2">
-                    <?php if (empty($riwayat)): ?>
-                        <p class="text-gray-500 text-center py-10">Belum ada riwayat laporan.</p>
-                    <?php endif; ?>
-                    <?php foreach ($riwayat as $r): ?>
-                        <div class="p-5 border border-gray-100 rounded-2xl bg-gray-50/50 hover:bg-gray-100/80 transition group relative">
-                             <div class="flex justify-between items-start mb-3">
-                                <span class="text-xs font-bold text-indigo-500 uppercase tracking-widest"><?php echo e($r['tanggal_kejadian']); ?></span>
-                                <?php
-                                    $status_color = 'bg-amber-100 text-amber-700';
-                                    if ($r['status'] == 'proses') $status_color = 'bg-blue-100 text-blue-700';
-                                    if ($r['status'] == 'selesai') $status_color = 'bg-green-100 text-green-700';
-                                ?>
-                                <span class="px-3 py-1 <?php echo $status_color; ?> rounded-full text-[10px] font-extrabold uppercase">
-                                    <?php echo e($r['status']); ?>
-                                </span>
-                             </div>
-                             <h4 class="font-bold text-gray-800"><?php echo e($r['terlapor_nama'] ?: 'Anonim'); ?></h4>
-                             <p class="text-gray-600 text-sm line-clamp-2 mt-1"><?php echo e($r['deskripsi']); ?></p>
-                             <div class="mt-3 flex items-center text-[11px] text-gray-400 font-medium">
-                                <span>📍 <?php echo e($r['lokasi']); ?></span>
-                             </div>
-                        </div>
-                    <?php endforeach; ?>
+            <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                <div>
+                    <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Nama Terlapor (Boleh Inisial)</label>
+                    <input type="text" name="terlapor_nama" placeholder="Siapa yang melakukan?"
+                        class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none transition duration-200">
                 </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Tanggal Kejadian</label>
+                        <input type="date" name="tanggal_kejadian" required
+                            class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none transition duration-200">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Lokasi</label>
+                        <input type="text" name="lokasi" required placeholder="Contoh: Kantin, Kelas"
+                            class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none transition duration-200">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kronologi / Deskripsi</label>
+                    <textarea name="deskripsi" required rows="4" placeholder="Ceritakan apa yang terjadi secara detail..."
+                        class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none transition duration-200"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Unggah Bukti Foto (Opsional)</label>
+                    <input type="file" name="bukti_foto"
+                        class="w-full px-4 py-3 rounded-[25px] bg-gray-50 outline-none transition duration-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200">
+                </div>
+                <button type="submit"
+                    class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-5 rounded-[30px] shadow-xl shadow-red-100 transition-all transform active:scale-95 uppercase tracking-widest text-xs">
+                    Kirim Laporan Sekarang
+                </button>
+            </form>
+        </div>
+
+        <div class="card-zen p-8 md:p-10">
+            <h3 class="text-xl font-black text-indigo-900 mb-8 uppercase tracking-tighter">Riwayat Laporan Anda</h3>
+            <div class="space-y-4">
+                <?php if (empty($riwayat)): ?>
+                    <p class="text-gray-400 text-center py-10 italic">Belum ada riwayat laporan.</p>
+                <?php endif; ?>
+                <?php foreach ($riwayat as $r): ?>
+                    <div class="p-6 bg-gray-50/50 rounded-[30px] border border-white hover:bg-white hover:shadow-xl transition-all">
+                         <div class="flex justify-between items-start mb-4">
+                            <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest"><?php echo e($r['tanggal_kejadian']); ?></span>
+                            <?php
+                                $status_color = 'bg-amber-100 text-amber-700';
+                                if ($r['status'] == 'proses') $status_color = 'bg-blue-100 text-blue-700';
+                                if ($r['status'] == 'selesai') $status_color = 'bg-green-100 text-green-700';
+                            ?>
+                            <span class="px-3 py-1 <?php echo $status_color; ?> rounded-full text-[9px] font-black uppercase">
+                                <?php echo e($r['status']); ?>
+                            </span>
+                         </div>
+                         <h4 class="font-black text-gray-800 uppercase tracking-tight"><?php echo e($r['terlapor_nama'] ?: 'Anonim'); ?></h4>
+                         <p class="text-gray-500 text-xs line-clamp-2 mt-2 italic">"<?php echo e($r['deskripsi']); ?>"</p>
+                         <div class="mt-4 pt-4 border-t border-gray-100 flex items-center text-[10px] text-gray-400 font-bold uppercase">
+                            <span>📍 <?php echo e($r['lokasi']); ?></span>
+                         </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
     </main>
+
+    <?php include 'includes/footer_nav.php'; ?>
 </body>
 </html>

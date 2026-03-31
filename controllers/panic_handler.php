@@ -6,7 +6,7 @@ require_once '../config/database.php';
 header('Content-Type: application/json');
 
 if (!is_logged_in() || $_SESSION['role'] != 'siswa') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    echo json_encode(['success' => false, 'message' => 'Akses ditolak (Unauthorized)']);
     exit();
 }
 
@@ -20,11 +20,11 @@ if (isset($data['lat']) && isset($data['lng'])) {
     try {
         $stmt = $pdo->prepare("INSERT INTO panic_events (user_id, latitude, longitude, status) VALUES (?, ?, ?, 'active')");
         $stmt->execute([$user_id, $lat, $lng]);
-        echo json_encode(['success' => true, 'message' => 'Panic alert sent! Assistance is on the way.']);
+        echo json_encode(['success' => true, 'message' => 'Sinyal Darurat terkirim! Bantuan segera meluncur ke lokasi Anda.']);
     } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Gagal menyimpan data: ' . $e->getMessage()]);
     }
 } else {
-    echo json_encode(['success' => false, 'message' => 'Invalid data']);
+    echo json_encode(['success' => false, 'message' => 'Data tidak valid']);
 }
 ?>

@@ -11,7 +11,6 @@ if (!is_logged_in() || $_SESSION['role'] != 'admin') {
 $success = '';
 $error = '';
 
-// Handle CRUD Operations
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
         $error = "Terjadi kesalahan keamanan (CSRF Token invalid).";
@@ -30,26 +29,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $password_plain = $_POST['password'];
                 } else {
                     $nis_nip = trim($_POST['nis_nip']);
-                    $username = $nis_nip; // Use NIS/NIP as username for login
-                    // If password not provided or empty, use NIS/NIP as password
+                    $username = $nis_nip;
                     $password_plain = !empty($_POST['password']) ? $_POST['password'] : $nis_nip;
                 }
 
                 $password_hash = password_hash($password_plain, PASSWORD_DEFAULT);
 
-                $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                 try {
+                    $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([$username, $password_hash, $nama, $role, $nis_nip, $kelas, $tempat_lahir, $tanggal_lahir]);
-                    $success = "User berhasil ditambahkan!";
+                    $success = "Pengguna berhasil ditambahkan!";
                 } catch (PDOException $e) {
-                    $error = "Gagal menambah user: " . $e->getMessage();
+                    $error = "Gagal menambah pengguna: " . $e->getMessage();
                 }
             } elseif ($_POST['action'] == 'delete') {
                 $id = $_POST['id'];
                 if ($id != $_SESSION['user_id']) {
                     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
                     $stmt->execute([$id]);
-                    $success = "User berhasil dihapus!";
+                    $success = "Pengguna berhasil dihapus!";
                 } else {
                     $error = "Anda tidak bisa menghapus diri sendiri!";
                 }
@@ -66,141 +64,140 @@ $csrf_token = generate_csrf_token();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola User - SI-SONYA Admin</title>
+    <title>Kelola Pengguna - SI-SONYA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; }
-    </style>
+    <style> body { font-family: 'Poppins', sans-serif; } </style>
 </head>
-<body class="bg-gray-50 flex min-h-screen">
-    <?php include 'includes/sidebar.php'; ?>
+<body class="bg-gray-50 min-h-screen">
+    <?php include 'includes/header.php'; ?>
 
-    <main class="flex-grow flex flex-col overflow-hidden">
-        <header class="bg-white shadow-sm border-b p-4 px-8 flex justify-between items-center">
-            <h2 class="text-xl font-bold text-gray-800">Kelola Seluruh Pengguna</h2>
-            <div class="flex gap-2">
-                <button onclick="openModal('siswa')" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-700 transition shadow-lg text-sm">+ Siswa</button>
-                <button onclick="openModal('guru')" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg text-sm">+ Guru</button>
-                <button onclick="openModal('admin')" class="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg text-sm">+ Admin</button>
+    <main class="max-w-6xl mx-auto p-6 md:p-10 space-y-8 pb-32">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+            <div>
+                <h2 class="text-3xl font-black text-indigo-900 uppercase tracking-tighter">Semua Pengguna</h2>
+                <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Master Data User SI-SONYA</p>
             </div>
-        </header>
-
-        <div class="p-8 overflow-y-auto">
-            <?php if ($success): ?>
-                <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-lg text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
-            <?php endif; ?>
-            <?php if ($error): ?>
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-lg text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
-            <?php endif; ?>
-
-            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-x-auto">
-                <table class="w-full text-left min-w-[800px]">
-                    <thead class="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th class="px-6 py-4 font-bold text-indigo-900">Nama Lengkap</th>
-                            <th class="px-6 py-4 font-bold text-indigo-900">NIS / NIP</th>
-                            <th class="px-6 py-4 font-bold text-indigo-900">Role</th>
-                            <th class="px-6 py-4 font-bold text-indigo-900">Kelas</th>
-                            <th class="px-6 py-4 font-bold text-indigo-900 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <?php foreach ($users as $u): ?>
-                            <tr class="hover:bg-gray-50 transition">
-                                <td class="px-6 py-4">
-                                    <div class="font-semibold text-gray-800"><?php echo e($u['nama_lengkap']); ?></div>
-                                    <div class="text-[10px] text-gray-400">Username: <?php echo e($u['username']); ?></div>
-                                </td>
-                                <td class="px-6 py-4 text-gray-600 font-mono text-sm"><?php echo e($u['nis_nip'] ?? '-'); ?></td>
-                                <td class="px-6 py-4">
-                                    <?php
-                                        $role_color = 'bg-gray-100 text-gray-700';
-                                        if ($u['role'] == 'admin') $role_color = 'bg-red-100 text-red-700';
-                                        if ($u['role'] == 'guru') $role_color = 'bg-blue-100 text-blue-700';
-                                        if ($u['role'] == 'siswa') $role_color = 'bg-green-100 text-green-700';
-                                    ?>
-                                    <span class="px-3 py-1 <?php echo $role_color; ?> rounded-full text-[10px] font-extrabold uppercase tracking-widest">
-                                        <?php echo e($u['role']); ?>
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-gray-600"><?php echo e($u['kelas'] ?? '-'); ?></td>
-                                <td class="px-6 py-4 text-center">
-                                    <form action="" method="POST" onsubmit="return confirm('Hapus user ini?')" class="inline">
-                                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="<?php echo e($u['id']); ?>">
-                                        <button type="submit" class="text-red-500 hover:text-red-700 font-bold text-sm bg-red-50 px-3 py-1 rounded-lg transition">Hapus</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+            <div class="flex gap-2">
+                <button onclick="openModal('siswa')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition shadow-xl shadow-emerald-100">+ Siswa</button>
+                <button onclick="openModal('guru')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition shadow-xl shadow-blue-100">+ Guru</button>
+                <button onclick="openModal('admin')" class="bg-indigo-900 hover:bg-black text-white px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition shadow-xl shadow-indigo-100">+ Admin</button>
             </div>
         </div>
 
-        <!-- Modal Add -->
-        <div id="modal-add" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 overflow-y-auto max-h-[90vh]">
-                <h3 id="modal-title" class="text-2xl font-bold text-indigo-900 mb-6">Tambah Pengguna Baru</h3>
-                <form action="" method="POST" class="space-y-4">
+        <?php if ($success): ?>
+            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-2xl text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-2xl text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
+        <?php endif; ?>
+
+        <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-x-auto">
+            <table class="w-full text-left min-w-[800px]">
+                <thead class="bg-gray-50/50 border-b border-gray-100">
+                    <tr>
+                        <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Identitas</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">ID / NIS / NIP</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Peran</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Kelas / Ket</th>
+                        <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <?php foreach ($users as $u): ?>
+                        <tr class="hover:bg-gray-50/50 transition group">
+                            <td class="px-8 py-6">
+                                <div class="font-black text-gray-800 uppercase tracking-tight"><?php echo e($u['nama_lengkap']); ?></div>
+                                <div class="text-[10px] text-gray-400 font-bold uppercase italic">Username: <?php echo e($u['username']); ?></div>
+                            </td>
+                            <td class="px-8 py-6 text-blue-600 font-mono text-sm font-bold"><?php echo e($u['nis_nip'] ?? 'ADMIN'); ?></td>
+                            <td class="px-8 py-6">
+                                <?php
+                                    $role_class = 'bg-gray-100 text-gray-700';
+                                    if ($u['role'] == 'admin') $role_class = 'bg-indigo-900 text-white';
+                                    if ($u['role'] == 'guru') $role_class = 'bg-blue-50 text-blue-700';
+                                    if ($u['role'] == 'siswa') $role_class = 'bg-emerald-50 text-emerald-700';
+                                ?>
+                                <span class="px-3 py-1 <?php echo $role_class; ?> rounded-full text-[10px] font-black uppercase tracking-widest">
+                                    <?php echo e($u['role']); ?>
+                                </span>
+                            </td>
+                            <td class="px-8 py-6 text-gray-600 text-xs font-bold"><?php echo e($u['kelas'] ?? '-'); ?></td>
+                            <td class="px-8 py-6 text-center">
+                                <form action="" method="POST" onsubmit="return confirm('Hapus pengguna ini?')" class="inline">
+                                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?php echo e($u['id']); ?>">
+                                    <button type="submit" class="w-10 h-10 inline-flex items-center justify-center bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition shadow-sm">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="modal-add" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-lg rounded-[40px] p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
+                <h3 id="modal-title" class="text-2xl font-black text-indigo-900 mb-8 uppercase tracking-tighter">Tambah Pengguna</h3>
+                <form action="" method="POST" class="space-y-6">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="role" id="input-role">
 
                     <div id="field-username" class="hidden">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Username Admin</label>
-                        <input type="text" name="username" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500">
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Username Admin</label>
+                        <input type="text" name="username" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
                     </div>
 
                     <div id="field-nis-nip">
-                        <label id="label-nis-nip" class="block text-sm font-semibold text-gray-700 mb-1">NIS / NIP</label>
-                        <input type="text" name="nis_nip" id="input-nis-nip" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500">
+                        <label id="label-nis-nip" class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Nomor Induk</label>
+                        <input type="text" name="nis_nip" id="input-nis-nip" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nama Lengkap</label>
-                        <input type="text" name="nama_lengkap" required class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500">
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Nama Lengkap</label>
+                        <input type="text" name="nama_lengkap" required class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Tempat Lahir</label>
-                            <input type="text" name="tempat_lahir" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500">
+                            <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Tempat Lahir</label>
+                            <input type="text" name="tempat_lahir" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal Lahir</label>
-                            <input type="date" name="tanggal_lahir" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500">
+                            <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Tanggal Lahir</label>
+                            <input type="date" name="tanggal_lahir" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
                         </div>
                     </div>
 
                     <div id="field-kelas">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Kelas</label>
-                        <input type="text" name="kelas" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500">
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kelas / Mapel</label>
+                        <input type="text" name="kelas" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Password (Opsional)</label>
-                        <input type="password" name="password" placeholder="Kosongkan jika ingin sama dengan NIS/NIP" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500">
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kata Sandi (Opsional)</label>
+                        <input type="password" name="password" placeholder="Bawaan: Nomor Induk" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
                     </div>
 
                     <div class="flex gap-4 pt-4">
-                        <button type="button" onclick="closeModal()" class="flex-grow py-3 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition">Batal</button>
-                        <button type="submit" class="flex-grow py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition">Simpan</button>
+                        <button type="button" onclick="closeModal()" class="flex-grow py-5 bg-gray-50 text-gray-500 rounded-[25px] font-black uppercase text-xs tracking-widest transition">Batal</button>
+                        <button type="submit" class="flex-grow py-5 bg-blue-600 text-white rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100 transition transform active:scale-95">Simpan User</button>
                     </div>
                 </form>
             </div>
         </div>
     </main>
 
+    <?php include 'includes/footer_nav.php'; ?>
+
     <script>
         function openModal(role) {
             document.getElementById('modal-add').classList.remove('hidden');
             document.getElementById('input-role').value = role;
-            document.getElementById('modal-title').innerText = 'Tambah Data ' + role.charAt(0).toUpperCase() + role.slice(1);
+            document.getElementById('modal-title').innerText = 'Tambah ' + role.charAt(0).toUpperCase() + role.slice(1);
 
-            // Toggle Fields
             if (role === 'admin') {
                 document.getElementById('field-username').classList.remove('hidden');
                 document.getElementById('field-nis-nip').classList.add('hidden');
@@ -211,13 +208,10 @@ $csrf_token = generate_csrf_token();
                 document.getElementById('field-nis-nip').classList.remove('hidden');
                 document.getElementById('field-kelas').classList.remove('hidden');
                 document.getElementById('input-nis-nip').required = true;
-                document.getElementById('label-nis-nip').innerText = (role === 'siswa') ? 'NIS (Nomor Induk Siswa)' : 'NIP / NIK (Guru)';
+                document.getElementById('label-nis-nip').innerText = (role === 'siswa') ? 'NIS Siswa' : 'NIP / NIK Guru';
             }
         }
-
-        function closeModal() {
-            document.getElementById('modal-add').classList.add('hidden');
-        }
+        function closeModal() { document.getElementById('modal-add').classList.add('hidden'); }
     </script>
 </body>
 </html>
