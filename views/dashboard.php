@@ -20,6 +20,10 @@ if ($role == 'admin' || $role == 'guru') {
     $stats['pending_reports'] = $pdo->query("SELECT COUNT(*) FROM bullying_reports WHERE status = 'pending'")->fetchColumn();
     $stats['active_panics'] = $pdo->query("SELECT COUNT(*) FROM panic_events WHERE status = 'active'")->fetchColumn();
 
+    // Average Mood for Today
+    $avg_mood_today = $pdo->query("SELECT AVG(mood_score) FROM mood_tracking WHERE tanggal = CURRENT_DATE")->fetchColumn();
+    $stats['avg_mood_today'] = $avg_mood_today ? round($avg_mood_today, 1) : null;
+
     // Data untuk Chart (Mood rata-rata 7 hari terakhir)
     $chart_data = $pdo->query("SELECT tanggal, AVG(mood_score) as avg_mood FROM mood_tracking GROUP BY tanggal ORDER BY tanggal DESC LIMIT 7")->fetchAll();
     $chart_labels = [];
@@ -60,7 +64,7 @@ if ($role == 'admin' || $role == 'guru') {
 <body class="bg-gray-50 flex min-h-screen">
     <?php include 'includes/sidebar.php'; ?>
 
-    <main class="flex-grow flex flex-col">
+    <main class="flex-grow flex flex-col overflow-hidden">
         <header class="bg-white shadow-sm border-b p-4 flex justify-between items-center px-8">
             <h2 class="text-xl font-bold text-gray-800">Selamat Datang, <?php echo e($nama); ?>!</h2>
             <div class="flex items-center space-x-4">
@@ -141,7 +145,7 @@ if ($role == 'admin' || $role == 'guru') {
             </script>
             <?php endif; ?>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 <?php if ($role == 'admin' || $role == 'guru'): ?>
                     <div class="bg-indigo-600 p-6 rounded-3xl shadow-lg text-white">
                         <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Total Pengguna</p>
@@ -155,9 +159,16 @@ if ($role == 'admin' || $role == 'guru') {
                         <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Fasilitas Rusak</p>
                         <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['total_facilities']; ?></h3>
                     </div>
-                    <div class="bg-red-700 p-6 rounded-3xl shadow-lg text-white border-4 border-white/20 animate-pulse">
+                    <div class="bg-red-700 p-6 rounded-3xl shadow-lg text-white border-4 border-white/20 animate-pulse relative overflow-hidden">
+                        <div class="absolute -right-2 -top-2 text-4xl opacity-20">🆘</div>
                         <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Panic Active</p>
                         <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['active_panics']; ?></h3>
+                    </div>
+                    <div class="bg-green-600 p-6 rounded-3xl shadow-lg text-white border-4 border-white/20 relative overflow-hidden">
+                        <div class="absolute -right-2 -top-2 text-4xl opacity-20">💖</div>
+                        <p class="text-[10px] opacity-80 uppercase font-bold tracking-widest">Rata Mood Hari Ini</p>
+                        <h3 class="text-3xl font-extrabold mt-1"><?php echo $stats['avg_mood_today'] ?: '0.0'; ?></h3>
+                        <p class="text-[9px] mt-1 font-bold uppercase tracking-tighter italic">Skala: 1.0 - 5.0</p>
                     </div>
                 <?php else: ?>
                     <div class="bg-indigo-500 p-6 rounded-3xl shadow-lg text-white">

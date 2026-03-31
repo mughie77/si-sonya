@@ -21,8 +21,8 @@ function is_active($page, $current) {
             </a>
         <?php endif; ?>
 
-        <!-- SISWA ONLY MENU -->
-        <?php if ($role === 'siswa'): ?>
+        <!-- SISWA & GURU MENU -->
+        <?php if ($role === 'siswa' || $role === 'guru'): ?>
             <a href="lapor_bullying.php" class="block py-2.5 px-4 rounded-xl transition <?php echo is_active('lapor_bullying.php', $current_page); ?>">🛡️ Lapor Bullying</a>
             <a href="mood_tracker.php" class="block py-2.5 px-4 rounded-xl transition <?php echo is_active('mood_tracker.php', $current_page); ?>">😊 Mood Tracker</a>
             <a href="lapor_fasilitas.php" class="block py-2.5 px-4 rounded-xl transition <?php echo is_active('lapor_fasilitas.php', $current_page); ?>">🏗️ Lapor Fasilitas</a>
@@ -38,6 +38,7 @@ function is_active($page, $current) {
             <a href="import_data.php" class="block py-2.5 px-4 rounded-xl transition <?php echo is_active('import_data.php', $current_page); ?>">📥 Import Data</a>
 
             <div class="pt-4 pb-1 px-4 text-[10px] font-bold text-indigo-300 uppercase tracking-widest">Laporan & Tool</div>
+            <a href="mood_report.php" class="block py-2.5 px-4 rounded-xl transition <?php echo is_active('mood_report.php', $current_page); ?>">📑 Laporan Mood</a>
             <a href="kelola_laporan.php" class="block py-2.5 px-4 rounded-xl transition <?php echo is_active('kelola_laporan.php', $current_page); ?>">📊 Kelola Laporan</a>
             <a href="hash_generator.php" class="block py-2.5 px-4 rounded-xl transition <?php echo is_active('hash_generator.php', $current_page); ?>">🔑 Hash Generator</a>
         <?php endif; ?>

@@ -26,16 +26,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tanggal_lahir = $_POST['tanggal_lahir'] ?? null;
                 $kelas = trim($_POST['kelas'] ?? '');
 
-                // If password not provided or empty, use NIP as password
                 $password_plain = !empty($_POST['password']) ? $_POST['password'] : $nip;
                 $password_hash = password_hash($password_plain, PASSWORD_DEFAULT);
 
-                $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                 try {
+                    $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
                     $stmt->execute([$username, $password_hash, $nama, $role, $nip, $kelas, $tempat_lahir, $tanggal_lahir]);
                     $success = "Data Guru berhasil ditambahkan!";
                 } catch (PDOException $e) {
                     $error = "Gagal menambah data guru: " . $e->getMessage();
+                }
+            } elseif ($_POST['action'] == 'edit_guru') {
+                $id = $_POST['id'];
+                $nama = trim($_POST['nama_lengkap']);
+                $nip = trim($_POST['nip']);
+                $username = $nip;
+                $tempat_lahir = trim($_POST['tempat_lahir'] ?? '');
+                $tanggal_lahir = $_POST['tanggal_lahir'] ?? null;
+                $kelas = trim($_POST['kelas'] ?? '');
+
+                $sql = "UPDATE users SET username = ?, nama_lengkap = ?, nis_nip = ?, kelas = ?, tempat_lahir = ?, tanggal_lahir = ?";
+                $params = [$username, $nama, $nip, $kelas, $tempat_lahir, $tanggal_lahir];
+
+                if (!empty($_POST['password'])) {
+                    $sql .= ", password = ?";
+                    $params[] = password_hash($_POST['password'], PASSWORD_DEFAULT);
+                }
+
+                $sql .= " WHERE id = ? AND role = 'guru'";
+                $params[] = $id;
+
+                try {
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($params);
+                    $success = "Data Guru berhasil diperbarui!";
+                } catch (PDOException $e) {
+                    $error = "Gagal memperbarui data guru: " . $e->getMessage();
                 }
             } elseif ($_POST['action'] == 'delete') {
                 $id = $_POST['id'];
@@ -80,7 +106,7 @@ $csrf_token = generate_csrf_token();
     <main class="flex-grow flex flex-col overflow-hidden">
         <header class="bg-white shadow-sm border-b p-4 px-8 flex justify-between items-center">
             <h2 class="text-xl font-bold text-gray-800">Manajemen Data Guru</h2>
-            <button onclick="document.getElementById('modal-add').classList.remove('hidden')" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg text-sm">+ Tambah Guru</button>
+            <button onclick='openModal("add")' class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg text-sm">+ Tambah Guru</button>
         </header>
 
         <div class="p-8 overflow-y-auto">
@@ -106,7 +132,7 @@ $csrf_token = generate_csrf_token();
                         <tr>
                             <th class="px-6 py-4 font-bold text-indigo-900">NIP / NIK</th>
                             <th class="px-6 py-4 font-bold text-indigo-900">Nama Lengkap</th>
-                            <th class="px-6 py-4 font-bold text-indigo-900">Keterangan Kelas/Bidang</th>
+                            <th class="px-6 py-4 font-bold text-indigo-900">Keterangan</th>
                             <th class="px-6 py-4 font-bold text-indigo-900">TTL</th>
                             <th class="px-6 py-4 font-bold text-indigo-900 text-center">Aksi</th>
                         </tr>
@@ -129,12 +155,15 @@ $csrf_token = generate_csrf_token();
                                     <?php echo $t['tanggal_lahir'] ? date('d/m/Y', strtotime($t['tanggal_lahir'])) : '-'; ?>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <form action="" method="POST" onsubmit="return confirm('Hapus data guru ini?')" class="inline">
-                                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="<?php echo e($t['id']); ?>">
-                                        <button type="submit" class="text-red-500 hover:text-red-700 font-bold text-xs bg-red-50 px-3 py-1 rounded-lg transition-all">Hapus</button>
-                                    </form>
+                                    <div class="flex justify-center gap-2">
+                                        <button onclick='openModal("edit", <?php echo json_encode($t); ?>)' class="text-indigo-600 hover:text-indigo-800 font-bold text-xs bg-indigo-50 px-3 py-1 rounded-lg transition-all">Edit</button>
+                                        <form action="" method="POST" onsubmit="return confirm('Hapus data guru ini?')" class="inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?php echo e($t['id']); ?>">
+                                            <button type="submit" class="text-red-500 hover:text-red-700 font-bold text-xs bg-red-50 px-3 py-1 rounded-lg transition-all">Hapus</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -143,53 +172,94 @@ $csrf_token = generate_csrf_token();
             </div>
         </div>
 
-        <!-- Modal Add Guru -->
-        <div id="modal-add" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <!-- Modal Add/Edit Guru -->
+        <div id="modal-guru" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 overflow-y-auto max-h-[90vh]">
-                <h3 class="text-2xl font-extrabold text-indigo-900 mb-6">Tambah Data Guru Baru</h3>
+                <h3 id="modal-title" class="text-2xl font-extrabold text-indigo-900 mb-6">Tambah Data Guru Baru</h3>
                 <form action="" method="POST" class="space-y-4">
                     <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                    <input type="hidden" name="action" value="add_guru">
+                    <input type="hidden" name="action" id="input-action" value="add_guru">
+                    <input type="hidden" name="id" id="input-id">
 
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-1">NIP / NIK Guru</label>
-                        <input type="text" name="nip" required placeholder="Contoh: 19800101201001" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
-                        <p class="text-[10px] text-gray-400 mt-1 italic">* Digunakan untuk login dan password default.</p>
+                        <input type="text" name="nip" id="input-nip" required placeholder="Contoh: 19800101201001" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
                     </div>
 
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap</label>
-                        <input type="text" name="nama_lengkap" required placeholder="Nama Guru Beserta Gelar" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
+                        <input type="text" name="nama_lengkap" id="input-nama" required placeholder="Nama Guru Beserta Gelar" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Tempat Lahir</label>
-                            <input type="text" name="tempat_lahir" placeholder="Kota" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
+                            <input type="text" name="tempat_lahir" id="input-tempat" placeholder="Kota" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-1">Tanggal Lahir</label>
-                            <input type="date" name="tanggal_lahir" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
+                            <input type="date" name="tanggal_lahir" id="input-tanggal" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Kelas/Mata Pelajaran</label>
-                        <input type="text" name="kelas" placeholder="Contoh: Wali Kelas X-A atau Matematika" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Keterangan (Bidang Studi/Wali Kelas)</label>
+                        <input type="text" name="kelas" id="input-kelas" placeholder="Contoh: Wali Kelas X-A atau Matematika" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Password Khusus (Opsional)</label>
-                        <input type="password" name="password" placeholder="Kosongkan jika ingin sama dengan NIP/NIK" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Password Baru (Kosongkan jika tidak diganti)</label>
+                        <input type="password" name="password" placeholder="Masukkan password baru..." class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500">
                     </div>
 
                     <div class="flex gap-4 pt-4">
-                        <button type="button" onclick="document.getElementById('modal-add').classList.add('hidden')" class="flex-grow py-3 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition">Batal</button>
-                        <button type="submit" class="flex-grow py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition">Simpan Data Guru</button>
+                        <button type="button" onclick="closeModal()" class="flex-grow py-3 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition">Batal</button>
+                        <button type="submit" id="btn-submit" class="flex-grow py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition">Simpan Data Guru</button>
                     </div>
                 </form>
             </div>
         </div>
     </main>
+
+    <script>
+        function openModal(mode, data = null) {
+            const modal = document.getElementById('modal-guru');
+            const title = document.getElementById('modal-title');
+            const action = document.getElementById('input-action');
+            const btn = document.getElementById('btn-submit');
+
+            modal.classList.remove('hidden');
+
+            if (mode === 'edit' && data) {
+                title.innerText = 'Edit Data Guru';
+                action.value = 'edit_guru';
+                btn.innerText = 'Perbarui Data';
+                btn.className = 'flex-grow py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition';
+
+                document.getElementById('input-id').value = data.id;
+                document.getElementById('input-nip').value = data.nis_nip;
+                document.getElementById('input-nama').value = data.nama_lengkap;
+                document.getElementById('input-tempat').value = data.tempat_lahir || '';
+                document.getElementById('input-tanggal').value = data.tanggal_lahir || '';
+                document.getElementById('input-kelas').value = data.kelas || '';
+            } else {
+                title.innerText = 'Tambah Data Guru Baru';
+                action.value = 'add_guru';
+                btn.innerText = 'Simpan Data Guru';
+                btn.className = 'flex-grow py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition';
+
+                document.getElementById('input-id').value = '';
+                document.getElementById('input-nip').value = '';
+                document.getElementById('input-nama').value = '';
+                document.getElementById('input-tempat').value = '';
+                document.getElementById('input-tanggal').value = '';
+                document.getElementById('input-kelas').value = '';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal-guru').classList.add('hidden');
+        }
+    </script>
 </body>
 </html>
