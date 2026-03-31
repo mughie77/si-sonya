@@ -3,6 +3,9 @@
 $cur = basename($_SERVER['PHP_SELF']);
 $role = $_SESSION['role'] ?? '';
 
+// Only Guru and Siswa use the floating footer navigation
+if ($role == 'admin') return;
+
 function get_active_class($page, $current) {
     return ($page === $current) ? 'text-indigo-600' : 'text-gray-400';
 }
@@ -20,23 +23,13 @@ function get_active_class($page, $current) {
     </a>
 
     <!-- MOOD -->
-    <?php if ($role != 'admin'): ?>
-        <a href="mood_tracker.php" class="flex flex-col items-center gap-1 group">
-            <div class="p-2 rounded-2xl group-active:scale-90 transition <?php echo ($cur == 'mood_tracker.php') ? 'bg-indigo-50' : ''; ?>">
-                <svg class="w-6 h-6 <?php echo get_active_class('mood_tracker.php', $cur); ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-            </div>
-        </a>
-    <?php else: ?>
-        <a href="mood_report.php" class="flex flex-col items-center gap-1 group">
-            <div class="p-2 rounded-2xl group-active:scale-90 transition <?php echo ($cur == 'mood_report.php') ? 'bg-indigo-50' : ''; ?>">
-                <svg class="w-6 h-6 <?php echo get_active_class('mood_report.php', $cur); ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                </svg>
-            </div>
-        </a>
-    <?php endif; ?>
+    <a href="mood_tracker.php" class="flex flex-col items-center gap-1 group">
+        <div class="p-2 rounded-2xl group-active:scale-90 transition <?php echo ($cur == 'mood_tracker.php') ? 'bg-indigo-50' : ''; ?>">
+            <svg class="w-6 h-6 <?php echo get_active_class('mood_tracker.php', $cur); ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+    </a>
 
     <!-- CENTER / PRIMARY ACTION (LAPOR) -->
     <a href="lapor_bullying.php" class="flex flex-col items-center -mt-12 group">
@@ -47,8 +40,8 @@ function get_active_class($page, $current) {
         </div>
     </a>
 
-    <!-- LIVE VIEW (SECURITY) -->
-    <?php if ($role == 'admin' || $role == 'guru'): ?>
+    <!-- LIVE VIEW (GURU) / LAPOR FASILITAS (SISWA) -->
+    <?php if ($role == 'guru'): ?>
         <a href="live_monitoring.php" class="flex flex-col items-center gap-1 group">
             <div class="p-2 rounded-2xl group-active:scale-90 transition <?php echo ($cur == 'live_monitoring.php') ? 'bg-red-50' : ''; ?>">
                 <svg class="w-6 h-6 <?php echo ($cur == 'live_monitoring.php') ? 'text-red-500' : 'text-gray-400'; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,7 +51,6 @@ function get_active_class($page, $current) {
             </div>
         </a>
     <?php else: ?>
-        <!-- For Siswa, this could be Lapor Fasilitas -->
         <a href="lapor_fasilitas.php" class="flex flex-col items-center gap-1 group">
             <div class="p-2 rounded-2xl group-active:scale-90 transition <?php echo ($cur == 'lapor_fasilitas.php') ? 'bg-indigo-50' : ''; ?>">
                 <svg class="w-6 h-6 <?php echo get_active_class('lapor_fasilitas.php', $cur); ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,5 +68,4 @@ function get_active_class($page, $current) {
             </div>
         </div>
     </button>
-
 </nav>

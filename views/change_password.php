@@ -10,6 +10,7 @@ if (!is_logged_in()) {
 
 $success = '';
 $error = '';
+$role = $_SESSION['role'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
@@ -50,57 +51,61 @@ $csrf_token = generate_csrf_token();
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style> body { font-family: 'Poppins', sans-serif; } </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <?php include 'includes/header.php'; ?>
+<body class="bg-gray-50 min-h-screen <?php echo ($role == 'admin') ? 'flex' : ''; ?>">
+    <?php if ($role == 'admin') include 'includes/sidebar.php'; ?>
 
-    <main class="max-w-md mx-auto p-6 md:p-10 space-y-8 pb-32">
-        <div class="text-center">
-            <h2 class="text-3xl font-black text-indigo-900 uppercase tracking-tighter">Ganti Sandi</h2>
-            <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Keamanan Akun Anda</p>
-        </div>
+    <div class="flex-grow">
+        <?php include 'includes/header.php'; ?>
 
-        <?php if ($success): ?>
-            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-2xl text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
-        <?php endif; ?>
-        <?php if ($error): ?>
-            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-2xl text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
-        <?php endif; ?>
+        <main class="max-w-md mx-auto p-6 md:p-10 space-y-8 pb-32">
+            <div class="text-center">
+                <h2 class="text-3xl font-black text-indigo-900 uppercase tracking-tighter">Ganti Sandi</h2>
+                <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Keamanan Akun Anda</p>
+            </div>
 
-        <div class="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100">
-            <form action="" method="POST" class="space-y-6">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+            <?php if ($success): ?>
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-2xl text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
+            <?php endif; ?>
+            <?php if ($error): ?>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-2xl text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
+            <?php endif; ?>
 
-                <div>
-                    <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kata Sandi Lama</label>
-                    <input type="password" name="old_password" required
-                        class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
-                </div>
+            <div class="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100">
+                <form action="" method="POST" class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
 
-                <hr class="border-gray-50">
+                    <div>
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kata Sandi Lama</label>
+                        <input type="password" name="old_password" required
+                            class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
+                    </div>
 
-                <div>
-                    <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kata Sandi Baru</label>
-                    <input type="password" name="new_password" required
-                        class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
-                </div>
-                <div>
-                    <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Ulangi Sandi Baru</label>
-                    <input type="password" name="confirm_password" required
-                        class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
-                </div>
+                    <hr class="border-gray-50">
 
-                <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-[25px] shadow-xl shadow-blue-100 transition transform active:scale-95 uppercase text-xs tracking-widest">
-                    Simpan Perubahan
-                </button>
-            </form>
-        </div>
+                    <div>
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kata Sandi Baru</label>
+                        <input type="password" name="new_password" required
+                            class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Ulangi Sandi Baru</label>
+                        <input type="password" name="confirm_password" required
+                            class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
+                    </div>
 
-        <div class="text-center">
-            <a href="dashboard.php" class="inline-block px-8 py-3 bg-white text-blue-600 border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition">← Batalkan & Kembali</a>
-        </div>
-    </main>
+                    <button type="submit"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-[25px] shadow-xl shadow-blue-100 transition transform active:scale-95 uppercase text-xs tracking-widest">
+                        Simpan Perubahan
+                    </button>
+                </form>
+            </div>
 
-    <?php include 'includes/footer_nav.php'; ?>
+            <div class="text-center">
+                <a href="dashboard.php" class="inline-block px-8 py-3 bg-white text-blue-600 border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition">← Batalkan & Kembali</a>
+            </div>
+        </main>
+
+        <?php include 'includes/footer_nav.php'; ?>
+    </div>
 </body>
 </html>

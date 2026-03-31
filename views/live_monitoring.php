@@ -26,48 +26,52 @@ $role = $_SESSION['role'];
         .bg-security { background-color: #0F172A; }
     </style>
 </head>
-<body class="bg-security text-gray-100 min-h-screen">
-    <?php include 'includes/header.php'; ?>
+<body class="bg-security text-gray-100 min-h-screen <?php echo ($role == 'admin') ? 'flex' : ''; ?>">
+    <?php if ($role == 'admin') include 'includes/sidebar.php'; ?>
 
-    <main class="max-w-5xl mx-auto p-6 md:p-10 space-y-8 pb-32">
-        <header class="flex justify-between items-center border-b border-gray-800 pb-6">
-            <div class="flex items-center gap-4">
-                <div class="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
-                <h2 class="text-2xl font-black uppercase tracking-widest text-white">Live Security Feed</h2>
+    <div class="flex-grow">
+        <?php include 'includes/header.php'; ?>
+
+        <main class="max-w-5xl mx-auto p-6 md:p-10 space-y-8 pb-32">
+            <header class="flex justify-between items-center border-b border-gray-800 pb-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                    <h2 class="text-2xl font-black uppercase tracking-widest text-white">Live Security Feed</h2>
+                </div>
+                <span id="last-update" class="text-[10px] text-gray-500 font-mono font-bold uppercase">Memuat...</span>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Panic Section -->
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between border-b border-red-900/30 pb-3">
+                        <h3 class="text-lg font-black text-red-400 flex items-center gap-3 tracking-tighter">
+                            <span class="text-2xl">🚨</span> SINYAL DARURAT AKTIF
+                        </h3>
+                        <span id="panic-count" class="bg-red-600 text-white text-[10px] px-2.5 py-1 rounded-full font-black">0</span>
+                    </div>
+                    <div id="panic-container" class="space-y-4">
+                        <div class="p-10 text-center text-gray-600 italic">Memindai sinyal...</div>
+                    </div>
+                </div>
+
+                <!-- Bullying Section -->
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between border-b border-indigo-900/30 pb-3">
+                        <h3 class="text-lg font-black text-indigo-400 flex items-center gap-3 tracking-tighter">
+                            <span class="text-2xl">🛡️</span> LAPORAN BULLYING (24 J)
+                        </h3>
+                        <span id="bullying-count" class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded-full font-black">0</span>
+                    </div>
+                    <div id="bullying-container" class="space-y-4">
+                        <div class="p-10 text-center text-gray-600 italic">Memantau laporan...</div>
+                    </div>
+                </div>
             </div>
-            <span id="last-update" class="text-[10px] text-gray-500 font-mono font-bold uppercase">Memuat...</span>
-        </header>
+        </main>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Panic Section -->
-            <div class="space-y-6">
-                <div class="flex items-center justify-between border-b border-red-900/30 pb-3">
-                    <h3 class="text-lg font-black text-red-400 flex items-center gap-3 tracking-tighter">
-                        <span class="text-2xl">🚨</span> SINYAL DARURAT AKTIF
-                    </h3>
-                    <span id="panic-count" class="bg-red-600 text-white text-[10px] px-2.5 py-1 rounded-full font-black">0</span>
-                </div>
-                <div id="panic-container" class="space-y-4">
-                    <div class="p-10 text-center text-gray-600 italic">Memindai sinyal...</div>
-                </div>
-            </div>
-
-            <!-- Bullying Section -->
-            <div class="space-y-6">
-                <div class="flex items-center justify-between border-b border-indigo-900/30 pb-3">
-                    <h3 class="text-lg font-black text-indigo-400 flex items-center gap-3 tracking-tighter">
-                        <span class="text-2xl">🛡️</span> LAPORAN BULLYING (24 J)
-                    </h3>
-                    <span id="bullying-count" class="bg-indigo-600 text-white text-[10px] px-2.5 py-1 rounded-full font-black">0</span>
-                </div>
-                <div id="bullying-container" class="space-y-4">
-                    <div class="p-10 text-center text-gray-600 italic">Memantau laporan...</div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <?php include 'includes/footer_nav.php'; ?>
+        <?php include 'includes/footer_nav.php'; ?>
+    </div>
 
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
@@ -87,9 +91,6 @@ $role = $_SESSION['role'];
 
                     if (data.alert) {
                         alertSound.play().catch(e => console.log("Audio diblokir"));
-                        if (Notification.permission === "granted") {
-                            new Notification("🚨 DARURAT!", { body: "Sinyal Panik Baru Terdeteksi!" });
-                        }
                     }
 
                     panicCount.innerText = data.panics.length;
@@ -132,10 +133,6 @@ $role = $_SESSION['role'];
                         bullyingContainer.innerHTML = '<div class="p-10 text-center text-gray-600 italic">Tidak ada laporan bullying terbaru hari ini.</div>';
                     }
                 });
-        }
-
-        if (Notification.permission !== "granted") {
-            Notification.requestPermission();
         }
 
         setInterval(fetchData, 5000);
