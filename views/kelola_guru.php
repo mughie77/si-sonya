@@ -72,17 +72,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Pagination & Filter Setup
+$limit = 10;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+$offset = ($page - 1) * $limit;
+
 $search = $_GET['search'] ?? '';
-$query = "SELECT * FROM users WHERE role = 'guru'";
+$f_ket = $_GET['f_ket'] ?? '';
+
+$query_base = "FROM users WHERE role = 'guru'";
 $params = [];
+
 if ($search) {
-    $query .= " AND (nama_lengkap LIKE ? OR nis_nip LIKE ? OR kelas LIKE ?)";
-    $params = ["%$search%", "%$search%", "%$search%"];
+    $query_base .= " AND (nama_lengkap LIKE ? OR nis_nip LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
 }
-$query .= " ORDER BY nama_lengkap";
-$stmt = $pdo->prepare($query);
+if ($f_ket) {
+    $query_base .= " AND kelas = ?";
+    $params[] = $f_ket;
+}
+
+// Get Total for Pagination
+$total_stmt = $pdo->prepare("SELECT COUNT(*) " . $query_base);
+$total_stmt->execute($params);
+$total_items = $total_stmt->fetchColumn();
+$total_pages = ceil($total_items / $limit);
+
+// Get Teachers
+$sql = "SELECT * " . $query_base . " ORDER BY nama_lengkap LIMIT $limit OFFSET $offset";
+$stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $teachers = $stmt->fetchAll();
+
+// Get unique subjects/remarks for filter
+$remarks = $pdo->query("SELECT DISTINCT kelas FROM users WHERE role = 'guru' AND kelas IS NOT NULL ORDER BY kelas")->fetchAll(PDO::FETCH_COLUMN);
 
 $csrf_token = generate_csrf_token();
 $role = $_SESSION['role'];
@@ -119,11 +144,26 @@ $role = $_SESSION['role'];
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-2xl text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
             <?php endif; ?>
 
-            <form action="" method="GET" class="relative max-w-md">
-                <input type="text" name="search" value="<?php echo e($search); ?>" placeholder="Cari Nama atau NIP/NIK..."
-                    class="w-full pl-12 pr-4 py-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
-                <div class="absolute left-4 top-4 text-gray-400">🔍</div>
-            </form>
+            <div class="flex flex-col md:flex-row gap-4">
+                <!-- Search -->
+                <form action="" method="GET" class="relative flex-grow">
+                    <input type="text" name="search" value="<?php echo e($search); ?>" placeholder="Cari Nama atau NIP/NIK..."
+                        class="w-full pl-12 pr-4 py-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-blue-100 outline-none transition duration-200">
+                    <div class="absolute left-4 top-4 text-gray-400">🔍</div>
+                    <?php if ($f_ket): ?><input type="hidden" name="f_ket" value="<?php echo e($f_ket); ?>"><?php endif; ?>
+                </form>
+
+                <!-- Filter -->
+                <form action="" method="GET" class="w-full md:w-64">
+                    <select name="f_ket" onchange="this.form.submit()" class="w-full px-6 py-4 rounded-2xl bg-white border-none shadow-sm text-xs font-black uppercase tracking-widest focus:ring-2 focus:ring-blue-100 outline-none cursor-pointer">
+                        <option value="">Semua Mapel</option>
+                        <?php foreach ($remarks as $k): ?>
+                            <option value="<?php echo e($k); ?>" <?php echo ($f_ket == $k) ? 'selected' : ''; ?>><?php echo e($k); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if ($search): ?><input type="hidden" name="search" value="<?php echo e($search); ?>"><?php endif; ?>
+                </form>
+            </div>
 
             <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-x-auto">
                 <table class="w-full text-left min-w-[800px]">
@@ -138,7 +178,7 @@ $role = $_SESSION['role'];
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <?php if (empty($teachers)): ?>
-                            <tr><td colspan="5" class="px-8 py-20 text-center text-gray-400 italic font-medium">Data tidak ditemukan.</td></tr>
+                            <tr><td colspan="5" class="px-8 py-20 text-center text-gray-400 italic font-medium uppercase text-xs tracking-widest">Data tidak ditemukan.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($teachers as $t): ?>
                             <tr class="hover:bg-gray-50/50 transition group">
@@ -165,6 +205,22 @@ $role = $_SESSION['role'];
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            <?php if ($total_pages > 1): ?>
+            <div class="flex justify-center items-center gap-2 pb-10">
+                <?php
+                    $qs = http_build_query(array_filter(['search' => $search, 'f_ket' => $f_ket]));
+                    $qs = $qs ? "&$qs" : "";
+                ?>
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <a href="?page=<?php echo $i . $qs; ?>"
+                       class="w-10 h-10 flex items-center justify-center rounded-xl font-black text-xs transition <?php echo ($page == $i) ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-400 hover:bg-blue-50 border border-gray-100'; ?>">
+                        <?php echo $i; ?>
+                    </a>
+                <?php endfor; ?>
+            </div>
+            <?php endif; ?>
 
             <div id="modal-guru" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
                 <div class="bg-white w-full max-w-lg rounded-[40px] p-10 shadow-2xl overflow-y-auto max-h-[90vh]">

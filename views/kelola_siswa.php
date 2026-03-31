@@ -72,17 +72,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Pagination & Filter Setup
+$limit = 10;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+$offset = ($page - 1) * $limit;
+
 $search = $_GET['search'] ?? '';
-$query = "SELECT * FROM users WHERE role = 'siswa'";
+$f_kelas = $_GET['f_kelas'] ?? '';
+
+$query_base = "FROM users WHERE role = 'siswa'";
 $params = [];
+
 if ($search) {
-    $query .= " AND (nama_lengkap LIKE ? OR nis_nip LIKE ? OR kelas LIKE ?)";
-    $params = ["%$search%", "%$search%", "%$search%"];
+    $query_base .= " AND (nama_lengkap LIKE ? OR nis_nip LIKE ?)";
+    $params[] = "%$search%";
+    $params[] = "%$search%";
 }
-$query .= " ORDER BY kelas, nama_lengkap";
-$stmt = $pdo->prepare($query);
+if ($f_kelas) {
+    $query_base .= " AND kelas = ?";
+    $params[] = $f_kelas;
+}
+
+// Get Total for Pagination
+$total_stmt = $pdo->prepare("SELECT COUNT(*) " . $query_base);
+$total_stmt->execute($params);
+$total_items = $total_stmt->fetchColumn();
+$total_pages = ceil($total_items / $limit);
+
+// Get Students
+$sql = "SELECT * " . $query_base . " ORDER BY kelas, nama_lengkap LIMIT $limit OFFSET $offset";
+$stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $students = $stmt->fetchAll();
+
+// Get unique classes for filter
+$classes = $pdo->query("SELECT DISTINCT kelas FROM users WHERE role = 'siswa' AND kelas IS NOT NULL ORDER BY kelas")->fetchAll(PDO::FETCH_COLUMN);
 
 $csrf_token = generate_csrf_token();
 $role = $_SESSION['role'];
@@ -119,11 +144,26 @@ $role = $_SESSION['role'];
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-2xl text-red-700 text-sm font-medium"><?php echo e($error); ?></div>
             <?php endif; ?>
 
-            <form action="" method="GET" class="relative max-w-md">
-                <input type="text" name="search" value="<?php echo e($search); ?>" placeholder="Cari Nama, NIS, atau Kelas..."
-                    class="w-full pl-12 pr-4 py-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-indigo-100 outline-none transition duration-200">
-                <div class="absolute left-4 top-4 text-gray-400">🔍</div>
-            </form>
+            <div class="flex flex-col md:flex-row gap-4">
+                <!-- Search -->
+                <form action="" method="GET" class="relative flex-grow">
+                    <input type="text" name="search" value="<?php echo e($search); ?>" placeholder="Cari Nama atau NIS..."
+                        class="w-full pl-12 pr-4 py-4 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-indigo-100 outline-none transition duration-200">
+                    <div class="absolute left-4 top-4 text-gray-400">🔍</div>
+                    <?php if ($f_kelas): ?><input type="hidden" name="f_kelas" value="<?php echo e($f_kelas); ?>"><?php endif; ?>
+                </form>
+
+                <!-- Filter -->
+                <form action="" method="GET" class="w-full md:w-64">
+                    <select name="f_kelas" onchange="this.form.submit()" class="w-full px-6 py-4 rounded-2xl bg-white border-none shadow-sm text-xs font-black uppercase tracking-widest focus:ring-2 focus:ring-indigo-100 outline-none cursor-pointer">
+                        <option value="">Semua Kelas</option>
+                        <?php foreach ($classes as $c): ?>
+                            <option value="<?php echo e($c); ?>" <?php echo ($f_kelas == $c) ? 'selected' : ''; ?>><?php echo e($c); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if ($search): ?><input type="hidden" name="search" value="<?php echo e($search); ?>"><?php endif; ?>
+                </form>
+            </div>
 
             <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-x-auto">
                 <table class="w-full text-left min-w-[800px]">
@@ -138,7 +178,7 @@ $role = $_SESSION['role'];
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <?php if (empty($students)): ?>
-                            <tr><td colspan="5" class="px-8 py-20 text-center text-gray-400 italic font-medium">Data tidak ditemukan.</td></tr>
+                            <tr><td colspan="5" class="px-8 py-20 text-center text-gray-400 italic font-medium uppercase text-xs tracking-widest">Data tidak ditemukan.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($students as $s): ?>
                             <tr class="hover:bg-gray-50/50 transition group">
@@ -165,6 +205,22 @@ $role = $_SESSION['role'];
                     </tbody>
                 </table>
             </div>
+
+            <!-- Pagination -->
+            <?php if ($total_pages > 1): ?>
+            <div class="flex justify-center items-center gap-2 pb-10">
+                <?php
+                    $qs = http_build_query(array_filter(['search' => $search, 'f_kelas' => $f_kelas]));
+                    $qs = $qs ? "&$qs" : "";
+                ?>
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <a href="?page=<?php echo $i . $qs; ?>"
+                       class="w-10 h-10 flex items-center justify-center rounded-xl font-black text-xs transition <?php echo ($page == $i) ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white text-gray-400 hover:bg-indigo-50 border border-gray-100'; ?>">
+                        <?php echo $i; ?>
+                    </a>
+                <?php endfor; ?>
+            </div>
+            <?php endif; ?>
 
             <!-- Modal Siswa -->
             <div id="modal-student" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
@@ -202,8 +258,8 @@ $role = $_SESSION['role'];
                             <input type="password" name="password" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
                         </div>
                         <div class="flex gap-4 pt-4">
-                            <button type="button" onclick="closeModal()" class="flex-grow py-5 bg-gray-50 text-gray-500 rounded-[25px] font-black uppercase text-xs tracking-widest">Batal</button>
-                            <button type="submit" id="btn-submit" class="flex-grow py-5 bg-indigo-600 text-white rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-100">Simpan Data</button>
+                            <button type="button" onclick="closeModal()" class="flex-grow py-5 bg-gray-50 text-gray-500 rounded-[25px] font-black uppercase text-xs tracking-widest transition">Batal</button>
+                            <button type="submit" id="btn-submit" class="flex-grow py-5 bg-indigo-600 text-white rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-100 transition transform active:scale-95">Simpan Data</button>
                         </div>
                     </form>
                 </div>

@@ -29,9 +29,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$bullying = $pdo->query("SELECT br.*, u.nama_lengkap as pelapor FROM bullying_reports br JOIN users u ON br.pelapor_id = u.id ORDER BY br.created_at DESC")->fetchAll();
-$facilities = $pdo->query("SELECT fr.*, u.nama_lengkap as pelapor FROM facility_reports fr JOIN users u ON fr.pelapor_id = u.id ORDER BY fr.created_at DESC")->fetchAll();
-$feedbacks = $pdo->query("SELECT fb.*, u.nama_lengkap as pengirim FROM feedback fb JOIN users u ON fb.user_id = u.id ORDER BY fb.created_at DESC")->fetchAll();
+// Pagination Bullying
+$limit_b = 6;
+$page_b = isset($_GET['pb']) ? (int)$_GET['pb'] : 1;
+if ($page_b < 1) $page_b = 1;
+$offset_b = ($page_b - 1) * $limit_b;
+
+$total_b = $pdo->query("SELECT COUNT(*) FROM bullying_reports")->fetchColumn();
+$pages_b = ceil($total_b / $limit_b);
+
+$bullying = $pdo->query("SELECT br.*, u.nama_lengkap as pelapor FROM bullying_reports br JOIN users u ON br.pelapor_id = u.id ORDER BY br.created_at DESC LIMIT $limit_b OFFSET $offset_b")->fetchAll();
+
+// Pagination Fasilitas
+$limit_f = 5;
+$page_f = isset($_GET['pf']) ? (int)$_GET['pf'] : 1;
+if ($page_f < 1) $page_f = 1;
+$offset_f = ($page_f - 1) * $limit_f;
+
+$total_f = $pdo->query("SELECT COUNT(*) FROM facility_reports")->fetchColumn();
+$pages_f = ceil($total_f / $limit_f);
+
+$facilities = $pdo->query("SELECT fr.*, u.nama_lengkap as pelapor FROM facility_reports fr JOIN users u ON fr.pelapor_id = u.id ORDER BY fr.created_at DESC LIMIT $limit_f OFFSET $offset_f")->fetchAll();
+
+// Feedback (Limit 12 without pagination as it's typically shorter)
+$feedbacks = $pdo->query("SELECT fb.*, u.nama_lengkap as pengirim FROM feedback fb JOIN users u ON fb.user_id = u.id ORDER BY fb.created_at DESC LIMIT 12")->fetchAll();
 
 $csrf_token = generate_csrf_token();
 $role = $_SESSION['role'];
@@ -83,7 +104,7 @@ $role = $_SESSION['role'];
                         <div class="md:col-span-2 bg-white p-12 rounded-[40px] shadow-sm border border-gray-100 text-center text-gray-400 font-bold uppercase text-xs tracking-widest">Belum ada laporan masuk.</div>
                     <?php endif; ?>
                     <?php foreach ($bullying as $b): ?>
-                        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-gray-50 hover:border-red-100 transition-all group relative overflow-hidden">
+                        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-gray-50 hover:border-red-100 transition-all group relative overflow-hidden flex flex-col">
                             <div class="flex justify-between items-start mb-6">
                                 <div class="flex items-center gap-4">
                                     <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center font-black text-indigo-900 border border-gray-100 uppercase"><?php echo e(substr($b['pelapor'], 0, 1)); ?></div>
@@ -94,7 +115,7 @@ $role = $_SESSION['role'];
                                 </div>
                                 <span class="text-[9px] text-gray-400 font-black uppercase"><?php echo e(date('d/m/y', strtotime($b['created_at']))); ?></span>
                             </div>
-                            <div class="bg-red-50/30 p-5 rounded-3xl mb-6 min-h-[100px]">
+                            <div class="bg-red-50/30 p-5 rounded-3xl mb-6 flex-grow">
                                 <p class="text-gray-600 text-xs italic font-medium leading-relaxed">"<?php echo e($b['deskripsi']); ?>"</p>
                             </div>
                             <div class="flex justify-between items-center mt-auto pt-6 border-t border-gray-50">
@@ -115,6 +136,15 @@ $role = $_SESSION['role'];
                         </div>
                     <?php endforeach; ?>
                 </div>
+
+                <!-- Pagination Bullying -->
+                <?php if ($pages_b > 1): ?>
+                <div class="flex justify-center gap-2 mt-8">
+                    <?php for ($i = 1; $i <= $pages_b; $i++): ?>
+                        <a href="?pb=<?php echo $i; ?>&pf=<?php echo $page_f; ?>#bullying" class="w-8 h-8 flex items-center justify-center rounded-lg font-black text-[10px] <?php echo ($page_b == $i) ? 'bg-red-600 text-white' : 'bg-white text-gray-400 border border-gray-100'; ?>"><?php echo $i; ?></a>
+                    <?php endfor; ?>
+                </div>
+                <?php endif; ?>
             </section>
 
             <!-- Fasilitas Section -->
@@ -158,6 +188,15 @@ $role = $_SESSION['role'];
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination Fasilitas -->
+                <?php if ($pages_f > 1): ?>
+                <div class="flex justify-center gap-2 mt-8">
+                    <?php for ($i = 1; $i <= $pages_f; $i++): ?>
+                        <a href="?pf=<?php echo $i; ?>&pb=<?php echo $page_b; ?>#fasilitas" class="w-8 h-8 flex items-center justify-center rounded-lg font-black text-[10px] <?php echo ($page_f == $i) ? 'bg-amber-500 text-white' : 'bg-white text-gray-400 border border-gray-100'; ?>"><?php echo $i; ?></a>
+                    <?php endfor; ?>
+                </div>
+                <?php endif; ?>
             </section>
 
             <!-- Feedback Section -->
@@ -168,8 +207,8 @@ $role = $_SESSION['role'];
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <?php foreach ($feedbacks as $fb): ?>
-                        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-gray-50 border-l-8 border-l-purple-500 hover:shadow-md transition">
-                            <p class="text-gray-700 text-xs leading-relaxed mb-6 font-medium italic">"<?php echo e($fb['isi_feedback']); ?>"</p>
+                        <div class="bg-white p-8 rounded-[40px] shadow-sm border border-gray-50 border-l-8 border-l-purple-500 hover:shadow-md transition flex flex-col">
+                            <p class="text-gray-700 text-xs leading-relaxed mb-6 font-medium italic flex-grow">"<?php echo e($fb['isi_feedback']); ?>"</p>
                             <div class="flex justify-between items-center text-[9px] font-black text-indigo-400 uppercase tracking-widest pt-4 border-t border-gray-50">
                                 <span>👤 <?php echo e($fb['pengirim']); ?></span>
                                 <span><?php echo e(date('d/m/y', strtotime($fb['created_at']))); ?></span>
