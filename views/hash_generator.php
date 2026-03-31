@@ -34,22 +34,10 @@ $csrf_token = generate_csrf_token();
     </style>
 </head>
 <body class="bg-gray-50 flex min-h-screen">
-    <aside class="w-64 bg-indigo-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl">
-        <div class="p-6 text-2xl font-bold border-b border-indigo-800 tracking-wider">SI-SONYA</div>
-        <nav class="flex-grow p-4 space-y-2">
-            <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏠 Dashboard</a>
-            <a href="kelola_user.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">👥 Kelola User</a>
-            <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📊 Kelola Laporan</a>
-            <a href="import_data.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📥 Import Data</a>
-            <a href="hash_generator.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">🛡️ Hash Generator</a>
-        </nav>
-        <div class="p-4 border-t border-indigo-800">
-            <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition text-center font-bold">Keluar</a>
-        </div>
-    </aside>
+    <?php include 'includes/sidebar.php'; ?>
 
-    <main class="flex-grow flex flex-col p-8 items-center justify-center">
-        <div class="max-w-2xl w-full bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
+    <main class="flex-grow flex flex-col p-8 items-center justify-center overflow-y-auto">
+        <div class="max-w-2xl w-full bg-white p-10 rounded-3xl shadow-sm border border-gray-100 h-fit">
             <h2 class="text-3xl font-extrabold text-indigo-900 mb-2">Password Hash Generator</h2>
             <p class="text-gray-500 mb-10 text-sm italic">Gunakan alat ini untuk menghasilkan hash password yang aman untuk database Anda.</p>
 
@@ -78,7 +66,7 @@ $csrf_token = generate_csrf_token();
                 </div>
             <?php endif; ?>
 
-            <div class="mt-8 pt-8 border-t border-gray-50">
+            <div class="mt-8 pt-8 border-t border-gray-50 text-center">
                 <a href="dashboard.php" class="text-indigo-600 hover:text-indigo-800 text-sm font-bold transition">← Kembali ke Dashboard</a>
             </div>
         </div>

@@ -40,22 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body class="bg-gray-50 flex min-h-screen">
-    <aside class="w-64 bg-indigo-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl">
-        <div class="p-6 text-2xl font-bold border-b border-indigo-800 tracking-wider">SI-SONYA</div>
-        <nav class="flex-grow p-4 space-y-2">
-            <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏠 Dashboard</a>
-            <a href="lapor_bullying.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🛡️ Lapor Bullying</a>
-            <a href="mood_tracker.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">😊 Mood Tracker</a>
-            <a href="lapor_fasilitas.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏗️ Lapor Fasilitas</a>
-            <a href="feedback.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">💬 Kirim Saran</a>
-        </nav>
-        <div class="p-4 border-t border-indigo-800">
-            <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition text-center font-bold">Keluar</a>
-        </div>
-    </aside>
+    <?php include 'includes/sidebar.php'; ?>
 
-    <main class="flex-grow flex flex-col items-center justify-center p-8">
-        <div class="max-w-2xl w-full bg-white p-10 rounded-3xl shadow-sm border border-gray-100 text-center">
+    <main class="flex-grow flex flex-col items-center justify-center p-8 overflow-y-auto">
+        <div class="max-w-2xl w-full bg-white p-10 rounded-3xl shadow-sm border border-gray-100 text-center h-fit">
             <div class="inline-block p-4 bg-purple-100 rounded-2xl mb-6">
                 <span class="text-4xl">💬</span>
             </div>

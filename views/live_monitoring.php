@@ -26,21 +26,7 @@ $role = $_SESSION['role'];
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100 flex min-h-screen">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-black border-r border-gray-800 flex-shrink-0 hidden md:flex flex-col shadow-2xl">
-        <div class="p-6 text-2xl font-bold border-b border-gray-800 tracking-wider text-indigo-500">SI-SONYA <span class="text-xs text-red-500 block">LIVE MONITOR</span></div>
-        <nav class="flex-grow p-4 space-y-2">
-            <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-gray-800 transition">🏠 Dashboard</a>
-            <a href="live_monitoring.php" class="block py-3 px-4 rounded-xl bg-gray-800 transition font-bold border-l-4 border-indigo-500">📡 Live View</a>
-            <?php if ($role == 'admin'): ?>
-                <a href="kelola_user.php" class="block py-3 px-4 rounded-xl hover:bg-gray-800 transition">👥 Kelola User</a>
-                <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl hover:bg-gray-800 transition">📊 Kelola Laporan</a>
-            <?php endif; ?>
-        </nav>
-        <div class="p-4 border-t border-gray-800">
-            <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-900/50 hover:bg-red-800 transition text-center font-bold text-red-200">Keluar</a>
-        </div>
-    </aside>
+    <?php include 'includes/sidebar.php'; ?>
 
     <main class="flex-grow flex flex-col overflow-hidden">
         <header class="bg-black/50 backdrop-blur-md border-b border-gray-800 p-4 px-8 flex justify-between items-center">

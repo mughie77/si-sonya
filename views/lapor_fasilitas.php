@@ -62,28 +62,16 @@ $csrf_token = generate_csrf_token();
     </style>
 </head>
 <body class="bg-gray-50 flex min-h-screen">
-    <aside class="w-64 bg-indigo-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl">
-        <div class="p-6 text-2xl font-bold border-b border-indigo-800 tracking-wider">SI-SONYA</div>
-        <nav class="flex-grow p-4 space-y-2">
-            <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏠 Dashboard</a>
-            <a href="lapor_bullying.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🛡️ Lapor Bullying</a>
-            <a href="mood_tracker.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">😊 Mood Tracker</a>
-            <a href="lapor_fasilitas.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">🏗️ Lapor Fasilitas</a>
-            <a href="feedback.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">💬 Kirim Saran</a>
-        </nav>
-        <div class="p-4 border-t border-indigo-800">
-            <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition text-center font-bold">Keluar</a>
-        </div>
-    </aside>
+    <?php include 'includes/sidebar.php'; ?>
 
-    <main class="flex-grow flex flex-col">
+    <main class="flex-grow flex flex-col overflow-hidden">
         <header class="bg-white shadow-sm border-b p-4 px-8 flex justify-between items-center">
             <h2 class="text-xl font-bold text-gray-800">Lapor Fasilitas Rusak</h2>
             <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-bold uppercase tracking-wide">Fasilitas Nyaman</span>
         </header>
 
-        <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+        <div class="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 overflow-y-auto">
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 h-fit">
                 <h3 class="text-2xl font-bold text-indigo-900 mb-6">Detail Kerusakan</h3>
 
                 <?php if ($success): ?>
@@ -120,7 +108,7 @@ $csrf_token = generate_csrf_token();
             <!-- Riwayat -->
             <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                 <h3 class="text-2xl font-bold text-indigo-900 mb-6">Status Laporan Fasilitas</h3>
-                <div class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                <div class="space-y-4 pr-2">
                     <?php if (empty($riwayat)): ?>
                         <p class="text-gray-500 text-center py-10">Belum ada laporan fasilitas.</p>
                     <?php endif; ?>

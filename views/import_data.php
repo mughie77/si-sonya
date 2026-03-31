@@ -72,22 +72,9 @@ $csrf_token = generate_csrf_token();
     </style>
 </head>
 <body class="bg-gray-50 flex min-h-screen">
-    <aside class="w-64 bg-indigo-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl">
-        <div class="p-6 text-2xl font-bold border-b border-indigo-800 tracking-wider">SI-SONYA</div>
-        <nav class="flex-grow p-4 space-y-2">
-            <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏠 Dashboard</a>
-            <a href="live_monitoring.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📡 Live View <span class="bg-red-500 text-[10px] px-2 py-0.5 rounded-full animate-pulse">NEW</span></a>
-            <a href="kelola_user.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">👥 Kelola User</a>
-            <a href="import_data.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">📥 Import Data</a>
-            <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📊 Kelola Laporan</a>
-            <a href="hash_generator.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🔑 Hash Generator</a>
-        </nav>
-        <div class="p-4 border-t border-indigo-800">
-            <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition text-center font-bold">Keluar</a>
-        </div>
-    </aside>
+    <?php include 'includes/sidebar.php'; ?>
 
-    <main class="flex-grow flex flex-col p-8">
+    <main class="flex-grow flex flex-col p-8 overflow-y-auto">
         <div class="max-w-2xl mx-auto w-full bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
             <h2 class="text-3xl font-extrabold text-indigo-900 mb-6">Import Data Guru & Siswa</h2>
 

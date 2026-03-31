@@ -74,25 +74,11 @@ $csrf_token = generate_csrf_token();
     </style>
 </head>
 <body class="bg-gray-50 flex min-h-screen">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-indigo-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl">
-        <div class="p-6 text-2xl font-bold border-b border-indigo-800 tracking-wider">SI-SONYA</div>
-        <nav class="flex-grow p-4 space-y-2">
-            <a href="dashboard.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🏠 Dashboard</a>
-            <a href="live_monitoring.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📡 Live View <span class="bg-red-500 text-[10px] px-2 py-0.5 rounded-full animate-pulse">NEW</span></a>
-            <a href="kelola_user.php" class="block py-3 px-4 rounded-xl bg-indigo-800 hover:bg-indigo-700 transition font-medium">👥 Kelola User</a>
-            <a href="kelola_laporan.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📊 Kelola Laporan</a>
-            <a href="import_data.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">📥 Import Data</a>
-            <a href="hash_generator.php" class="block py-3 px-4 rounded-xl hover:bg-indigo-700 transition">🔑 Hash Generator</a>
-        </nav>
-        <div class="p-4 border-t border-indigo-800">
-            <a href="../logout.php" class="block py-3 px-4 rounded-xl bg-red-600 hover:bg-red-700 transition text-center font-bold">Keluar</a>
-        </div>
-    </aside>
+    <?php include 'includes/sidebar.php'; ?>
 
-    <main class="flex-grow flex flex-col">
+    <main class="flex-grow flex flex-col overflow-hidden">
         <header class="bg-white shadow-sm border-b p-4 px-8 flex justify-between items-center">
-            <h2 class="text-xl font-bold text-gray-800">Kelola Data Pengguna</h2>
+            <h2 class="text-xl font-bold text-gray-800">Kelola Seluruh Pengguna</h2>
             <div class="flex gap-2">
                 <button onclick="openModal('siswa')" class="bg-green-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-green-700 transition shadow-lg text-sm">+ Siswa</button>
                 <button onclick="openModal('guru')" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg text-sm">+ Guru</button>
@@ -100,7 +86,7 @@ $csrf_token = generate_csrf_token();
             </div>
         </header>
 
-        <div class="p-8">
+        <div class="p-8 overflow-y-auto">
             <?php if ($success): ?>
                 <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-lg text-green-700 text-sm font-medium"><?php echo e($success); ?></div>
             <?php endif; ?>
@@ -116,7 +102,6 @@ $csrf_token = generate_csrf_token();
                             <th class="px-6 py-4 font-bold text-indigo-900">NIS / NIP</th>
                             <th class="px-6 py-4 font-bold text-indigo-900">Role</th>
                             <th class="px-6 py-4 font-bold text-indigo-900">Kelas</th>
-                            <th class="px-6 py-4 font-bold text-indigo-900">TTL</th>
                             <th class="px-6 py-4 font-bold text-indigo-900 text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -140,10 +125,6 @@ $csrf_token = generate_csrf_token();
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-gray-600"><?php echo e($u['kelas'] ?? '-'); ?></td>
-                                <td class="px-6 py-4 text-gray-500 text-xs italic">
-                                    <?php echo $u['tempat_lahir'] ? e($u['tempat_lahir']) : '-'; ?>,
-                                    <?php echo $u['tanggal_lahir'] ? date('d/m/Y', strtotime($u['tanggal_lahir'])) : '-'; ?>
-                                </td>
                                 <td class="px-6 py-4 text-center">
                                     <form action="" method="POST" onsubmit="return confirm('Hapus user ini?')" class="inline">
                                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
@@ -176,7 +157,6 @@ $csrf_token = generate_csrf_token();
                     <div id="field-nis-nip">
                         <label id="label-nis-nip" class="block text-sm font-semibold text-gray-700 mb-1">NIS / NIP</label>
                         <input type="text" name="nis_nip" id="input-nis-nip" class="w-full px-4 py-2 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500">
-                        <p class="text-[10px] text-gray-400 mt-1 italic">* Digunakan untuk login dan password default.</p>
                     </div>
 
                     <div>
