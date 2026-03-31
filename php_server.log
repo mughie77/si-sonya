@@ -1,0 +1,34 @@
+[Tue Mar 31 03:41:48 2026] PHP 8.3.6 Development Server (http://localhost:8000) started
+[Tue Mar 31 03:42:12 2026] [::1]:34958 Accepted
+[Tue Mar 31 03:42:12 2026] [::1]:34958 [200]: GET /
+[Tue Mar 31 03:42:12 2026] [::1]:34958 Closing
+[Tue Mar 31 03:42:24 2026] [::1]:39422 Accepted
+[Tue Mar 31 03:42:24 2026] [::1]:39422 [200]: GET /
+[Tue Mar 31 03:42:24 2026] [::1]:39422 Closing
+[Tue Mar 31 03:42:33 2026] [::1]:33300 Accepted
+[Tue Mar 31 03:42:33 2026] PHP Fatal error:  Uncaught Error: Undefined constant PDO::ATTR_ERRMODE_EXCEPTION in /app/config/database.php:14
+Stack trace:
+#0 /app/index.php(3): require_once()
+#1 {main}
+  thrown in /app/config/database.php on line 14
+[Tue Mar 31 03:42:33 2026] [::1]:33300 [500]: GET / - Uncaught Error: Undefined constant PDO::ATTR_ERRMODE_EXCEPTION in /app/config/database.php:14
+Stack trace:
+#0 /app/index.php(3): require_once()
+#1 {main}
+  thrown in /app/config/database.php on line 14
+[Tue Mar 31 03:42:33 2026] [::1]:33300 Closing
+[Tue Mar 31 03:42:45 2026] [::1]:58058 Accepted
+[Tue Mar 31 03:42:45 2026] PHP Fatal error:  Uncaught Error: Undefined constant PDO::ATTR_ERRMODE_EXCEPTION in /app/config/database.php:14
+Stack trace:
+#0 /app/index.php(3): require_once()
+#1 {main}
+  thrown in /app/config/database.php on line 14
+[Tue Mar 31 03:42:45 2026] [::1]:58058 [500]: GET / - Uncaught Error: Undefined constant PDO::ATTR_ERRMODE_EXCEPTION in /app/config/database.php:14
+Stack trace:
+#0 /app/index.php(3): require_once()
+#1 {main}
+  thrown in /app/config/database.php on line 14
+[Tue Mar 31 03:42:45 2026] [::1]:58058 Closing
+[Tue Mar 31 03:43:12 2026] [::1]:47532 Accepted
+[Tue Mar 31 03:43:12 2026] [::1]:47532 [200]: GET /
+[Tue Mar 31 03:43:12 2026] [::1]:47532 Closing
