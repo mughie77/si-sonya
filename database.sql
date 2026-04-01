@@ -12,10 +12,20 @@ CREATE TABLE users (
     kelas VARCHAR(50) NULL,
     tempat_lahir VARCHAR(100) NULL,
     tanggal_lahir DATE NULL,
-    kontak_darurat_1 VARCHAR(20) NULL,
-    kontak_darurat_2 VARCHAR(20) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Tabel Pengaturan Sistem (Global)
+CREATE TABLE settings (
+    id INT PRIMARY KEY,
+    key_name VARCHAR(50) UNIQUE NOT NULL,
+    key_value TEXT NULL
+);
+
+-- Insert Default Emergency Contacts
+INSERT INTO settings (id, key_name, key_value) VALUES
+(1, 'emergency_contact_1', '08123456789'),
+(2, 'emergency_contact_2', '08987654321');
 
 -- Tabel Laporan Bullying
 CREATE TABLE bullying_reports (

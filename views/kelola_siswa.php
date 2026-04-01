@@ -24,15 +24,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tempat_lahir = trim($_POST['tempat_lahir'] ?? '');
                 $tanggal_lahir = $_POST['tanggal_lahir'] ?? null;
                 $kelas = trim($_POST['kelas'] ?? '');
-                $kontak1 = trim($_POST['kontak_darurat_1'] ?? '');
-                $kontak2 = trim($_POST['kontak_darurat_2'] ?? '');
 
                 $password_plain = !empty($_POST['password']) ? $_POST['password'] : $nis;
                 $password_hash = password_hash($password_plain, PASSWORD_DEFAULT);
 
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir, kontak_darurat_1, kontak_darurat_2) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$username, $password_hash, $nama, $role, $nis, $kelas, $tempat_lahir, $tanggal_lahir, $kontak1, $kontak2]);
+                    $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$username, $password_hash, $nama, $role, $nis, $kelas, $tempat_lahir, $tanggal_lahir]);
                     $success = "Data Siswa berhasil ditambahkan!";
                 } catch (PDOException $e) {
                     $error = "Gagal menambah data siswa: " . $e->getMessage();
@@ -45,11 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tempat_lahir = trim($_POST['tempat_lahir'] ?? '');
                 $tanggal_lahir = $_POST['tanggal_lahir'] ?? null;
                 $kelas = trim($_POST['kelas'] ?? '');
-                $kontak1 = trim($_POST['kontak_darurat_1'] ?? '');
-                $kontak2 = trim($_POST['kontak_darurat_2'] ?? '');
 
-                $sql = "UPDATE users SET username = ?, nama_lengkap = ?, nis_nip = ?, kelas = ?, tempat_lahir = ?, tanggal_lahir = ?, kontak_darurat_1 = ?, kontak_darurat_2 = ?";
-                $params = [$username, $nama, $nis, $kelas, $tempat_lahir, $tanggal_lahir, $kontak1, $kontak2];
+                $sql = "UPDATE users SET username = ?, nama_lengkap = ?, nis_nip = ?, kelas = ?, tempat_lahir = ?, tanggal_lahir = ?";
+                $params = [$username, $nama, $nis, $kelas, $tempat_lahir, $tanggal_lahir];
 
                 if (!empty($_POST['password'])) {
                     $sql .= ", password = ?";
@@ -170,19 +166,18 @@ $role = $_SESSION['role'];
             </div>
 
             <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left min-w-[1000px]">
+                <table class="w-full text-left min-w-[800px]">
                     <thead class="bg-gray-50/50 border-b border-gray-100">
                         <tr>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Identitas</th>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Kelas</th>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">TTL</th>
-                            <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Kontak Darurat</th>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         <?php if (empty($students)): ?>
-                            <tr><td colspan="5" class="px-8 py-20 text-center text-gray-400 italic font-medium uppercase text-xs tracking-widest">Data tidak ditemukan.</td></tr>
+                            <tr><td colspan="4" class="px-8 py-20 text-center text-gray-400 italic font-medium uppercase text-xs tracking-widest">Data tidak ditemukan.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($students as $s): ?>
                             <tr class="hover:bg-gray-50/50 transition group">
@@ -195,11 +190,7 @@ $role = $_SESSION['role'];
                                     <?php echo $s['tempat_lahir'] ? e($s['tempat_lahir']) : '-'; ?>,
                                     <?php echo $s['tanggal_lahir'] ? date('d/m/Y', strtotime($s['tanggal_lahir'])) : '-'; ?>
                                 </td>
-                                <td class="px-8 py-6">
-                                    <div class="text-[10px] font-bold text-gray-400">1: <?php echo $s['kontak_darurat_1'] ?: '<span class="italic">Belum set</span>'; ?></div>
-                                    <div class="text-[10px] font-bold text-gray-400">2: <?php echo $s['kontak_darurat_2'] ?: '<span class="italic">Belum set</span>'; ?></div>
-                                </td>
-                                <td class="px-8 py-6">
+                                <td class="px-8 py-6 text-center">
                                     <div class="flex justify-center gap-3">
                                         <button onclick='openModal("edit", <?php echo json_encode($s); ?>)' class="w-10 h-10 flex items-center justify-center bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition shadow-sm">✏️</button>
                                         <form action="" method="POST" onsubmit="return confirm('Hapus data siswa ini?')">
@@ -274,17 +265,9 @@ $role = $_SESSION['role'];
                             </div>
                         </div>
 
-                        <div class="p-6 bg-blue-50/50 rounded-[30px] border border-blue-100/50 space-y-4">
-                            <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-2">📞 Kontak Darurat (Maks 2)</p>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input type="text" name="kontak_darurat_1" id="input-kontak1" placeholder="Nomor Kontak 1" class="w-full px-6 py-4 rounded-[20px] bg-white border-none focus:ring-2 focus:ring-blue-100 outline-none text-sm">
-                                <input type="text" name="kontak_darurat_2" id="input-kontak2" placeholder="Nomor Kontak 2" class="w-full px-6 py-4 rounded-[20px] bg-white border-none focus:ring-2 focus:ring-blue-100 outline-none text-sm">
-                            </div>
-                        </div>
-
                         <div class="flex gap-4 pt-4">
                             <button type="button" onclick="closeModal()" class="flex-grow py-5 bg-gray-50 text-gray-500 rounded-[25px] font-black uppercase text-xs tracking-widest transition">Batal</button>
-                            <button type="submit" id="btn-submit" class="flex-grow py-5 bg-indigo-600 text-white rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-100 transition transform active:scale-95">Simpan Data</button>
+                            <button type="submit" id="btn-submit" class="flex-grow py-5 bg-blue-600 text-white rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100 transition transform active:scale-95">Simpan Data</button>
                         </div>
                     </form>
                 </div>
@@ -306,8 +289,6 @@ $role = $_SESSION['role'];
                 document.getElementById('input-tempat').value = data.tempat_lahir || '';
                 document.getElementById('input-tanggal').value = data.tanggal_lahir || '';
                 document.getElementById('input-kelas').value = data.kelas || '';
-                document.getElementById('input-kontak1').value = data.kontak_darurat_1 || '';
-                document.getElementById('input-kontak2').value = data.kontak_darurat_2 || '';
             } else {
                 document.getElementById('modal-title').innerText = 'Siswa Baru';
                 document.getElementById('input-action').value = 'add_student';
@@ -317,8 +298,6 @@ $role = $_SESSION['role'];
                 document.getElementById('input-tempat').value = '';
                 document.getElementById('input-tanggal').value = '';
                 document.getElementById('input-kelas').value = '';
-                document.getElementById('input-kontak1').value = '';
-                document.getElementById('input-kontak2').value = '';
             }
             modal.classList.remove('hidden');
         }

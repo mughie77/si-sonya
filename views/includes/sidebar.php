@@ -68,6 +68,11 @@ $cur = basename($_SERVER['PHP_SELF']);
             <span class="text-xl">🔑</span>
             <span class="text-xs font-bold uppercase tracking-widest">Keamanan</span>
         </a>
+
+        <a href="pengaturan_sistem.php" class="flex items-center gap-4 px-6 py-4 rounded-2xl transition <?php echo ($cur == 'pengaturan_sistem.php') ? 'bg-indigo-600 shadow-lg shadow-indigo-900/50' : 'hover:bg-white/5'; ?>">
+            <span class="text-xl">⚙️</span>
+            <span class="text-xs font-bold uppercase tracking-widest">Pengaturan</span>
+        </a>
     </nav>
 
     <div class="mt-12 pt-8 border-t border-white/10">

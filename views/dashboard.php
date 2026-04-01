@@ -65,6 +65,10 @@ if ($role == 'siswa' || $role == 'guru') {
 }
 
 $days_of_week = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+// Fetch Global Emergency Contacts
+$stmt_contact = $pdo->query("SELECT key_name, key_value FROM settings WHERE key_name IN ('emergency_contact_1', 'emergency_contact_2')");
+$global_contacts = $stmt_contact->fetchAll(PDO::FETCH_KEY_PAIR);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -195,6 +199,7 @@ $days_of_week = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
                 </div>
 
                 <?php if ($role == 'siswa'): ?>
+            <div class="space-y-4">
                 <button id="panicButton" class="w-full bg-red-600 hover:bg-red-700 text-white py-6 rounded-[35px] shadow-2xl shadow-red-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-4 border-b-8 border-red-800">
                     <span class="text-4xl">🆘</span>
                     <div class="text-left">
@@ -202,6 +207,25 @@ $days_of_week = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
                         <p class="text-[9px] font-bold opacity-70 uppercase tracking-widest mt-1">Tekan Dalam Keadaan Darurat</p>
                     </div>
                 </button>
+
+                <!-- Global Emergency Contacts Display for Students -->
+                <div class="grid grid-cols-2 gap-4">
+                    <a href="tel:<?php echo e($global_contacts['emergency_contact_1'] ?? ''); ?>" class="bg-white p-4 rounded-[25px] border border-red-100 flex items-center justify-center gap-3 group hover:bg-red-50 transition">
+                        <span class="text-xl">📞</span>
+                        <div class="text-left">
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Kontak 1</p>
+                            <p class="text-[10px] font-black text-red-600"><?php echo e($global_contacts['emergency_contact_1'] ?? '-'); ?></p>
+                        </div>
+                    </a>
+                    <a href="tel:<?php echo e($global_contacts['emergency_contact_2'] ?? ''); ?>" class="bg-white p-4 rounded-[25px] border border-red-100 flex items-center justify-center gap-3 group hover:bg-red-50 transition">
+                        <span class="text-xl">📞</span>
+                        <div class="text-left">
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Kontak 2</p>
+                            <p class="text-[10px] font-black text-red-600"><?php echo e($global_contacts['emergency_contact_2'] ?? '-'); ?></p>
+                        </div>
+                    </a>
+                    </div>
+            </div>
                 <?php endif; ?>
 
                 <div class="text-center py-6">

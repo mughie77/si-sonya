@@ -39,12 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $tanggal_lahir = (!empty($data[4])) ? date('Y-m-d', strtotime($data[4])) : null;
                     $password_plain = (!empty($data[5])) ? trim($data[5]) : $nis_nip;
                     $password_hash = password_hash($password_plain, PASSWORD_DEFAULT);
-                    $kontak1 = $data[6] ?? '';
-                    $kontak2 = $data[7] ?? '';
 
                     try {
-                        $stmt = $pdo->prepare("INSERT INTO users (nama_lengkap, username, nis_nip, password, role, kelas, tempat_lahir, tanggal_lahir, kontak_darurat_1, kontak_darurat_2) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$nama, $username, $nis_nip, $password_hash, $role_imp, $kelas, $tempat_lahir, $tanggal_lahir, $kontak1, $kontak2]);
+                        $stmt = $pdo->prepare("INSERT INTO users (nama_lengkap, username, nis_nip, password, role, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$nama, $username, $nis_nip, $password_hash, $role_imp, $kelas, $tempat_lahir, $tanggal_lahir]);
                         $count_success++;
                     } catch (PDOException $e) { $count_failed++; }
                 }
@@ -129,7 +127,7 @@ $role = $_SESSION['role'];
 
                     <h3 class="text-lg font-black uppercase tracking-tighter mb-4">💡 Aturan Kolom</h3>
                     <div class="space-y-3 text-[10px] font-medium text-indigo-100 leading-relaxed">
-                        <p>Pastikan urutan kolom sesuai dengan template (Kolom G & H untuk Kontak Darurat):</p>
+                        <p>Pastikan urutan kolom sesuai dengan template:</p>
                         <ol class="list-decimal list-inside space-y-1 ml-2">
                             <li><span class="text-white font-bold">Nama Lengkap</span></li>
                             <li><span class="text-white font-bold">NIS / NIP</span></li>
@@ -137,8 +135,6 @@ $role = $_SESSION['role'];
                             <li><span class="text-white font-bold">Tempat Lahir</span></li>
                             <li><span class="text-white font-bold">Tgl Lahir (YYYY-MM-DD)</span></li>
                             <li><span class="text-white font-bold">Password</span></li>
-                            <li><span class="text-white font-bold">Kontak Darurat 1</span></li>
-                            <li><span class="text-white font-bold">Kontak Darurat 2</span></li>
                         </ol>
                     </div>
                 </div>
