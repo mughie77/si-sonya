@@ -24,13 +24,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tempat_lahir = trim($_POST['tempat_lahir'] ?? '');
                 $tanggal_lahir = $_POST['tanggal_lahir'] ?? null;
                 $kelas = trim($_POST['kelas'] ?? '');
+                $kontak1 = trim($_POST['kontak_darurat_1'] ?? '');
+                $kontak2 = trim($_POST['kontak_darurat_2'] ?? '');
 
                 $password_plain = !empty($_POST['password']) ? $_POST['password'] : $nis;
                 $password_hash = password_hash($password_plain, PASSWORD_DEFAULT);
 
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$username, $password_hash, $nama, $role, $nis, $kelas, $tempat_lahir, $tanggal_lahir]);
+                    $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir, kontak_darurat_1, kontak_darurat_2) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$username, $password_hash, $nama, $role, $nis, $kelas, $tempat_lahir, $tanggal_lahir, $kontak1, $kontak2]);
                     $success = "Data Siswa berhasil ditambahkan!";
                 } catch (PDOException $e) {
                     $error = "Gagal menambah data siswa: " . $e->getMessage();
@@ -43,9 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tempat_lahir = trim($_POST['tempat_lahir'] ?? '');
                 $tanggal_lahir = $_POST['tanggal_lahir'] ?? null;
                 $kelas = trim($_POST['kelas'] ?? '');
+                $kontak1 = trim($_POST['kontak_darurat_1'] ?? '');
+                $kontak2 = trim($_POST['kontak_darurat_2'] ?? '');
 
-                $sql = "UPDATE users SET username = ?, nama_lengkap = ?, nis_nip = ?, kelas = ?, tempat_lahir = ?, tanggal_lahir = ?";
-                $params = [$username, $nama, $nis, $kelas, $tempat_lahir, $tanggal_lahir];
+                $sql = "UPDATE users SET username = ?, nama_lengkap = ?, nis_nip = ?, kelas = ?, tempat_lahir = ?, tanggal_lahir = ?, kontak_darurat_1 = ?, kontak_darurat_2 = ?";
+                $params = [$username, $nama, $nis, $kelas, $tempat_lahir, $tanggal_lahir, $kontak1, $kontak2];
 
                 if (!empty($_POST['password'])) {
                     $sql .= ", password = ?";
@@ -125,7 +129,7 @@ $role = $_SESSION['role'];
 <body class="bg-gray-50 min-h-screen <?php echo ($role == 'admin') ? 'flex' : ''; ?>">
     <?php if ($role == 'admin') include 'includes/sidebar.php'; ?>
 
-    <div class="flex-grow">
+    <div class="flex-grow min-w-0">
         <?php include 'includes/header.php'; ?>
 
         <main class="max-w-6xl mx-auto p-6 md:p-10 space-y-8 pb-32">
@@ -165,14 +169,14 @@ $role = $_SESSION['role'];
                 </form>
             </div>
 
-            <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-x-auto">
-                <table class="w-full text-left min-w-[800px]">
+            <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left min-w-[1000px]">
                     <thead class="bg-gray-50/50 border-b border-gray-100">
                         <tr>
-                            <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">NIS</th>
-                            <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Nama Lengkap</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Identitas</th>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Kelas</th>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">TTL</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Kontak Darurat</th>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -182,12 +186,18 @@ $role = $_SESSION['role'];
                         <?php endif; ?>
                         <?php foreach ($students as $s): ?>
                             <tr class="hover:bg-gray-50/50 transition group">
-                                <td class="px-8 py-6 text-indigo-600 font-mono text-sm font-bold"><?php echo e($s['nis_nip']); ?></td>
-                                <td class="px-8 py-6 font-black text-gray-800 uppercase tracking-tight"><?php echo e($s['nama_lengkap']); ?></td>
+                                <td class="px-8 py-6">
+                                    <div class="font-black text-gray-800 uppercase tracking-tight"><?php echo e($s['nama_lengkap']); ?></div>
+                                    <div class="text-[10px] text-indigo-600 font-mono font-bold"><?php echo e($s['nis_nip']); ?></div>
+                                </td>
                                 <td class="px-8 py-6"><span class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-black uppercase"><?php echo e($s['kelas'] ?? '-'); ?></span></td>
                                 <td class="px-8 py-6 text-gray-500 text-xs italic">
                                     <?php echo $s['tempat_lahir'] ? e($s['tempat_lahir']) : '-'; ?>,
                                     <?php echo $s['tanggal_lahir'] ? date('d/m/Y', strtotime($s['tanggal_lahir'])) : '-'; ?>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <div class="text-[10px] font-bold text-gray-400">1: <?php echo $s['kontak_darurat_1'] ?: '<span class="italic">Belum set</span>'; ?></div>
+                                    <div class="text-[10px] font-bold text-gray-400">2: <?php echo $s['kontak_darurat_2'] ?: '<span class="italic">Belum set</span>'; ?></div>
                                 </td>
                                 <td class="px-8 py-6">
                                     <div class="flex justify-center gap-3">
@@ -223,23 +233,26 @@ $role = $_SESSION['role'];
             <?php endif; ?>
 
             <!-- Modal Siswa -->
-            <div id="modal-student" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
-                <div class="bg-white w-full max-w-lg rounded-[40px] p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div id="modal-student" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[150] hidden flex items-center justify-center p-4">
+                <div class="bg-white w-full max-w-2xl rounded-[40px] p-10 shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar">
                     <h3 id="modal-title" class="text-2xl font-black text-indigo-900 mb-8 uppercase tracking-tighter">Siswa Baru</h3>
                     <form action="" method="POST" class="space-y-6">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                         <input type="hidden" name="action" id="input-action" value="add_student">
                         <input type="hidden" name="id" id="input-id">
 
-                        <div>
-                            <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Nomor Induk Siswa (NIS)</label>
-                            <input type="text" name="nis" id="input-nis" required class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Nomor Induk Siswa (NIS)</label>
+                                <input type="text" name="nis" id="input-nis" required class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Nama Lengkap</label>
+                                <input type="text" name="nama_lengkap" id="input-nama" required class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Nama Lengkap</label>
-                            <input type="text" name="nama_lengkap" id="input-nama" required class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Tempat Lahir</label>
                                 <input type="text" name="tempat_lahir" id="input-tempat" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
@@ -249,14 +262,26 @@ $role = $_SESSION['role'];
                                 <input type="date" name="tanggal_lahir" id="input-tanggal" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kelas</label>
-                            <input type="text" name="kelas" id="input-kelas" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kelas</label>
+                                <input type="text" name="kelas" id="input-kelas" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kata Sandi (Opsional)</label>
+                                <input type="password" name="password" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-black text-indigo-900 uppercase tracking-widest mb-2 ml-2">Kata Sandi Baru (Opsional)</label>
-                            <input type="password" name="password" class="w-full px-6 py-4 rounded-[25px] bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 outline-none">
+
+                        <div class="p-6 bg-blue-50/50 rounded-[30px] border border-blue-100/50 space-y-4">
+                            <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-2">📞 Kontak Darurat (Maks 2)</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <input type="text" name="kontak_darurat_1" id="input-kontak1" placeholder="Nomor Kontak 1" class="w-full px-6 py-4 rounded-[20px] bg-white border-none focus:ring-2 focus:ring-blue-100 outline-none text-sm">
+                                <input type="text" name="kontak_darurat_2" id="input-kontak2" placeholder="Nomor Kontak 2" class="w-full px-6 py-4 rounded-[20px] bg-white border-none focus:ring-2 focus:ring-blue-100 outline-none text-sm">
+                            </div>
                         </div>
+
                         <div class="flex gap-4 pt-4">
                             <button type="button" onclick="closeModal()" class="flex-grow py-5 bg-gray-50 text-gray-500 rounded-[25px] font-black uppercase text-xs tracking-widest transition">Batal</button>
                             <button type="submit" id="btn-submit" class="flex-grow py-5 bg-indigo-600 text-white rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-100 transition transform active:scale-95">Simpan Data</button>
@@ -281,6 +306,8 @@ $role = $_SESSION['role'];
                 document.getElementById('input-tempat').value = data.tempat_lahir || '';
                 document.getElementById('input-tanggal').value = data.tanggal_lahir || '';
                 document.getElementById('input-kelas').value = data.kelas || '';
+                document.getElementById('input-kontak1').value = data.kontak_darurat_1 || '';
+                document.getElementById('input-kontak2').value = data.kontak_darurat_2 || '';
             } else {
                 document.getElementById('modal-title').innerText = 'Siswa Baru';
                 document.getElementById('input-action').value = 'add_student';
@@ -290,6 +317,8 @@ $role = $_SESSION['role'];
                 document.getElementById('input-tempat').value = '';
                 document.getElementById('input-tanggal').value = '';
                 document.getElementById('input-kelas').value = '';
+                document.getElementById('input-kontak1').value = '';
+                document.getElementById('input-kontak2').value = '';
             }
             modal.classList.remove('hidden');
         }

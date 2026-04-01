@@ -12,6 +12,8 @@ CREATE TABLE users (
     kelas VARCHAR(50) NULL,
     tempat_lahir VARCHAR(100) NULL,
     tanggal_lahir DATE NULL,
+    kontak_darurat_1 VARCHAR(20) NULL,
+    kontak_darurat_2 VARCHAR(20) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

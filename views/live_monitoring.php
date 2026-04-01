@@ -29,7 +29,7 @@ $role = $_SESSION['role'];
 <body class="bg-security text-gray-100 min-h-screen <?php echo ($role == 'admin') ? 'flex' : ''; ?>">
     <?php if ($role == 'admin') include 'includes/sidebar.php'; ?>
 
-    <div class="flex-grow">
+    <div class="flex-grow min-w-0">
         <?php include 'includes/header.php'; ?>
 
         <main class="max-w-5xl mx-auto p-6 md:p-10 space-y-8 pb-32">

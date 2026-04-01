@@ -18,7 +18,7 @@ $count_failed = 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!validate_csrf_token($_POST['csrf_token'] ?? '')) {
-        $error = "CSRF Token invalid.";
+        $error = "Terjadi kesalahan keamanan (CSRF Token invalid).";
     } elseif (isset($_FILES['file_excel']) && $_FILES['file_excel']['error'] === 0) {
         $file_path = $_FILES['file_excel']['tmp_name'];
         $role_imp = $_POST['role_import'] ?? 'siswa';
@@ -28,7 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sheet = $spreadsheet->getActiveSheet();
             $rows = $sheet->toArray();
 
-            // Skip header row
             for ($i = 1; $i < count($rows); $i++) {
                 $data = $rows[$i];
                 if (isset($data[0]) && !empty($data[0])) {
@@ -40,10 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $tanggal_lahir = (!empty($data[4])) ? date('Y-m-d', strtotime($data[4])) : null;
                     $password_plain = (!empty($data[5])) ? trim($data[5]) : $nis_nip;
                     $password_hash = password_hash($password_plain, PASSWORD_DEFAULT);
+                    $kontak1 = $data[6] ?? '';
+                    $kontak2 = $data[7] ?? '';
 
                     try {
-                        $stmt = $pdo->prepare("INSERT INTO users (nama_lengkap, username, nis_nip, password, role, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$nama, $username, $nis_nip, $password_hash, $role_imp, $kelas, $tempat_lahir, $tanggal_lahir]);
+                        $stmt = $pdo->prepare("INSERT INTO users (nama_lengkap, username, nis_nip, password, role, kelas, tempat_lahir, tanggal_lahir, kontak_darurat_1, kontak_darurat_2) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$nama, $username, $nis_nip, $password_hash, $role_imp, $kelas, $tempat_lahir, $tanggal_lahir, $kontak1, $kontak2]);
                         $count_success++;
                     } catch (PDOException $e) { $count_failed++; }
                 }
@@ -71,7 +72,7 @@ $role = $_SESSION['role'];
 <body class="bg-gray-50 min-h-screen <?php echo ($role == 'admin') ? 'flex' : ''; ?>">
     <?php if ($role == 'admin') include 'includes/sidebar.php'; ?>
 
-    <div class="flex-grow">
+    <div class="flex-grow min-w-0">
         <?php include 'includes/header.php'; ?>
 
         <main class="max-w-4xl mx-auto p-6 md:p-10 space-y-8 pb-32">
@@ -88,7 +89,6 @@ $role = $_SESSION['role'];
             <?php endif; ?>
 
             <div class="grid md:grid-cols-2 gap-8 items-start">
-                <!-- Upload Box -->
                 <div class="bg-white rounded-[40px] p-10 shadow-sm border border-gray-100">
                     <form action="" method="POST" enctype="multipart/form-data" class="space-y-6">
                         <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
@@ -114,7 +114,6 @@ $role = $_SESSION['role'];
                     </form>
                 </div>
 
-                <!-- Template & Help Box -->
                 <div class="bg-indigo-900 rounded-[40px] p-10 shadow-xl text-white">
                     <h3 class="text-xl font-black uppercase tracking-tighter mb-6">📥 Unduh Template</h3>
                     <div class="grid grid-cols-1 gap-4 mb-8">
@@ -130,7 +129,7 @@ $role = $_SESSION['role'];
 
                     <h3 class="text-lg font-black uppercase tracking-tighter mb-4">💡 Aturan Kolom</h3>
                     <div class="space-y-3 text-[10px] font-medium text-indigo-100 leading-relaxed">
-                        <p>Pastikan urutan kolom sesuai dengan template:</p>
+                        <p>Pastikan urutan kolom sesuai dengan template (Kolom G & H untuk Kontak Darurat):</p>
                         <ol class="list-decimal list-inside space-y-1 ml-2">
                             <li><span class="text-white font-bold">Nama Lengkap</span></li>
                             <li><span class="text-white font-bold">NIS / NIP</span></li>
@@ -138,6 +137,8 @@ $role = $_SESSION['role'];
                             <li><span class="text-white font-bold">Tempat Lahir</span></li>
                             <li><span class="text-white font-bold">Tgl Lahir (YYYY-MM-DD)</span></li>
                             <li><span class="text-white font-bold">Password</span></li>
+                            <li><span class="text-white font-bold">Kontak Darurat 1</span></li>
+                            <li><span class="text-white font-bold">Kontak Darurat 2</span></li>
                         </ol>
                     </div>
                 </div>

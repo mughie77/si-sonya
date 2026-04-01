@@ -2,10 +2,19 @@
 // views/includes/sidebar.php
 $cur = basename($_SERVER['PHP_SELF']);
 ?>
-<aside class="w-72 bg-indigo-950 min-h-screen flex flex-col p-8 text-white sticky top-0 hidden lg:flex shadow-2xl">
-    <div class="mb-12">
-        <h1 class="text-3xl font-black tracking-tighter uppercase">SI-SONYA</h1>
-        <p class="text-indigo-400 text-[10px] font-black uppercase tracking-widest mt-1">Admin Dashboard</p>
+<!-- Sidebar Overlay for Mobile -->
+<div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-[110] hidden lg:hidden backdrop-blur-sm"></div>
+
+<!-- Sidebar -->
+<aside id="sidebar-admin" class="fixed inset-y-0 left-0 w-72 bg-indigo-950 flex flex-col p-8 text-white z-[120] transform -translate-x-full lg:translate-x-0 lg:sticky lg:top-0 transition-transform duration-300 shadow-2xl overflow-y-auto custom-scrollbar">
+    <div class="flex justify-between items-center mb-12">
+        <div>
+            <h1 class="text-3xl font-black tracking-tighter uppercase">SI-SONYA</h1>
+            <p class="text-indigo-400 text-[10px] font-black uppercase tracking-widest mt-1">Admin Dashboard</p>
+        </div>
+        <button onclick="toggleSidebar()" class="lg:hidden text-white/50 hover:text-white">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
     </div>
 
     <nav class="flex-grow space-y-2">
@@ -52,7 +61,7 @@ $cur = basename($_SERVER['PHP_SELF']);
 
         <a href="import_data.php" class="flex items-center gap-4 px-6 py-4 rounded-2xl transition <?php echo ($cur == 'import_data.php') ? 'bg-indigo-600 shadow-lg shadow-indigo-900/50' : 'hover:bg-white/5'; ?>">
             <span class="text-xl">📥</span>
-            <span class="text-xs font-bold uppercase tracking-widest">Unggah CSV</span>
+            <span class="text-xs font-bold uppercase tracking-widest">Unggah Excel</span>
         </a>
 
         <a href="hash_generator.php" class="flex items-center gap-4 px-6 py-4 rounded-2xl transition <?php echo ($cur == 'hash_generator.php') ? 'bg-indigo-600 shadow-lg shadow-indigo-900/50' : 'hover:bg-white/5'; ?>">
@@ -68,3 +77,19 @@ $cur = basename($_SERVER['PHP_SELF']);
         </a>
     </div>
 </aside>
+
+<script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar-admin');
+        const overlay = document.getElementById('sidebar-overlay');
+        const isHidden = sidebar.classList.contains('-translate-x-full');
+
+        if (isHidden) {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
+    }
+</script>
