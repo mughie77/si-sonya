@@ -1,0 +1,2 @@
+Package "php 8.2.12" found in version "8.2.12" (version provided by config.platform).
+There is no installed package depending on "php" in versions not matching 8.2.12
