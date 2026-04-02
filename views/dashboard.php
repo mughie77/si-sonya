@@ -69,6 +69,18 @@ $days_of_week = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 // Fetch Global Emergency Contacts
 $stmt_contact = $pdo->query("SELECT key_name, key_value FROM settings WHERE key_name IN ('emergency_contact_1', 'emergency_contact_2')");
 $global_contacts = $stmt_contact->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Helper for WhatsApp Link formatting
+function getWaLink($number) {
+    if (!$number) return '#';
+    // Remove non-digit characters
+    $clean = preg_replace('/[^0-9]/', '', $number);
+    // Convert 0 to 62 if at the start
+    if (str_starts_with($clean, '0')) {
+        $clean = '62' . substr($clean, 1);
+    }
+    return "https://wa.me/" . $clean . "?text=" . urlencode("Sinyal Darurat SI-SONYA! Saya butuh bantuan segera di lokasi saya.");
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -208,23 +220,23 @@ $global_contacts = $stmt_contact->fetchAll(PDO::FETCH_KEY_PAIR);
                     </div>
                 </button>
 
-                <!-- Global Emergency Contacts Display for Students -->
+                <!-- Global Emergency Contacts Display for Students (WhatsApp Links) -->
                 <div class="grid grid-cols-2 gap-4">
-                    <a href="tel:<?php echo e($global_contacts['emergency_contact_1'] ?? ''); ?>" class="bg-white p-4 rounded-[25px] border border-red-100 flex items-center justify-center gap-3 group hover:bg-red-50 transition">
-                        <span class="text-xl">📞</span>
+                    <a href="<?php echo getWaLink($global_contacts['emergency_contact_1'] ?? ''); ?>" target="_blank" class="bg-white p-4 rounded-[25px] border border-red-100 flex items-center justify-center gap-3 group hover:bg-red-50 transition">
+                        <span class="text-xl">💬</span>
                         <div class="text-left">
-                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Kontak 1</p>
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">WhatsApp 1</p>
                             <p class="text-[10px] font-black text-red-600"><?php echo e($global_contacts['emergency_contact_1'] ?? '-'); ?></p>
                         </div>
                     </a>
-                    <a href="tel:<?php echo e($global_contacts['emergency_contact_2'] ?? ''); ?>" class="bg-white p-4 rounded-[25px] border border-red-100 flex items-center justify-center gap-3 group hover:bg-red-50 transition">
-                        <span class="text-xl">📞</span>
+                    <a href="<?php echo getWaLink($global_contacts['emergency_contact_2'] ?? ''); ?>" target="_blank" class="bg-white p-4 rounded-[25px] border border-red-100 flex items-center justify-center gap-3 group hover:bg-red-50 transition">
+                        <span class="text-xl">💬</span>
                         <div class="text-left">
-                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Kontak 2</p>
+                            <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest">WhatsApp 2</p>
                             <p class="text-[10px] font-black text-red-600"><?php echo e($global_contacts['emergency_contact_2'] ?? '-'); ?></p>
                         </div>
                     </a>
-                    </div>
+                </div>
             </div>
                 <?php endif; ?>
 
