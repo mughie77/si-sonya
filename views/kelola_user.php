@@ -22,8 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tempat_lahir = trim($_POST['tempat_lahir'] ?? '');
                 $tanggal_lahir = $_POST['tanggal_lahir'] ?? null;
                 $kelas = trim($_POST['kelas'] ?? '');
-                $kontak1 = trim($_POST['kontak_darurat_1'] ?? '');
-                $kontak2 = trim($_POST['kontak_darurat_2'] ?? '');
 
                 if ($role_sel == 'admin') {
                     $username = trim($_POST['username']);
@@ -38,8 +36,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $password_hash = password_hash($password_plain, PASSWORD_DEFAULT);
 
                 try {
-                    $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir, kontak_darurat_1, kontak_darurat_2) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$username, $password_hash, $nama, $role_sel, $nis_nip, $kelas, $tempat_lahir, $tanggal_lahir, $kontak1, $kontak2]);
+                    $stmt = $pdo->prepare("INSERT INTO users (username, password, nama_lengkap, role, nis_nip, kelas, tempat_lahir, tanggal_lahir) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$username, $password_hash, $nama, $role_sel, $nis_nip, $kelas, $tempat_lahir, $tanggal_lahir]);
                     $success = "Pengguna berhasil ditambahkan!";
                 } catch (PDOException $e) {
                     $error = "Gagal menambah pengguna: " . $e->getMessage();
@@ -99,12 +97,12 @@ $role = $_SESSION['role'];
             <?php endif; ?>
 
             <div class="bg-white rounded-[40px] shadow-sm border border-gray-100 overflow-x-auto custom-scrollbar">
-                <table class="w-full text-left min-w-[1000px]">
+                <table class="w-full text-left min-w-[800px]">
                     <thead class="bg-gray-50/50 border-b border-gray-100">
                         <tr>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Identitas</th>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Peran</th>
-                            <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Ket / Kontak</th>
+                            <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest">Keterangan</th>
                             <th class="px-8 py-5 text-[10px] font-black text-indigo-900 uppercase tracking-widest text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -127,10 +125,7 @@ $role = $_SESSION['role'];
                                     </span>
                                 </td>
                                 <td class="px-8 py-6">
-                                    <div class="text-xs font-bold text-gray-600 mb-1"><?php echo e($u['kelas'] ?? '-'); ?></div>
-                                    <?php if ($u['kontak_darurat_1']): ?>
-                                        <div class="text-[9px] text-indigo-400 font-black uppercase">📞 <?php echo e($u['kontak_darurat_1']); ?></div>
-                                    <?php endif; ?>
+                                    <div class="text-xs font-bold text-gray-600"><?php echo e($u['kelas'] ?? '-'); ?></div>
                                 </td>
                                 <td class="px-8 py-6 text-center">
                                     <form action="" method="POST" onsubmit="return confirm('Hapus pengguna ini?')" class="inline">
@@ -194,14 +189,6 @@ $role = $_SESSION['role'];
                             </div>
                         </div>
 
-                        <div id="field-kontak" class="p-6 bg-blue-50/50 rounded-[30px] border border-blue-100/50 space-y-4">
-                            <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest ml-2">📞 Kontak Darurat (Maks 2)</p>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input type="text" name="kontak_darurat_1" placeholder="Nomor Kontak 1" class="w-full px-6 py-4 rounded-[20px] bg-white border-none focus:ring-2 focus:ring-blue-100 outline-none text-sm">
-                                <input type="text" name="kontak_darurat_2" placeholder="Nomor Kontak 2" class="w-full px-6 py-4 rounded-[20px] bg-white border-none focus:ring-2 focus:ring-blue-100 outline-none text-sm">
-                            </div>
-                        </div>
-
                         <div class="flex gap-4 pt-4">
                             <button type="button" onclick="closeModal()" class="flex-grow py-5 bg-gray-50 text-gray-500 rounded-[25px] font-black uppercase text-xs tracking-widest transition">Batal</button>
                             <button type="submit" class="flex-grow py-5 bg-blue-600 text-white rounded-[25px] font-black uppercase text-xs tracking-widest shadow-xl shadow-blue-100 transition transform active:scale-95">Simpan User</button>
@@ -224,13 +211,11 @@ $role = $_SESSION['role'];
                 document.getElementById('field-username').classList.remove('hidden');
                 document.getElementById('field-nis-nip').classList.add('hidden');
                 document.getElementById('field-kelas').classList.add('hidden');
-                document.getElementById('field-kontak').classList.add('hidden');
                 document.getElementById('input-nis-nip').required = false;
             } else {
                 document.getElementById('field-username').classList.add('hidden');
                 document.getElementById('field-nis-nip').classList.remove('hidden');
                 document.getElementById('field-kelas').classList.remove('hidden');
-                document.getElementById('field-kontak').classList.remove('hidden');
                 document.getElementById('input-nis-nip').required = true;
                 document.getElementById('label-nis-nip').innerText = (role === 'siswa') ? 'NIS Siswa' : 'NIP / NIK Guru';
             }
