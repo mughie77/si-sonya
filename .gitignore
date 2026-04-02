@@ -1,0 +1,4 @@
+vendor/
+php_server.log
+uploads/*
+!uploads/.gitkeep
